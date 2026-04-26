@@ -7,7 +7,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from config import settings
-from handlers import start, ideas, metrics, voice, plans, notifications, planner
+from handlers import start, ideas, metrics, voice, plans, notifications, planner, chat
 
 
 async def main() -> None:
@@ -32,6 +32,7 @@ async def main() -> None:
     dp.include_router(plans.router)
     dp.include_router(voice.router)
     dp.include_router(notifications.router)
+    dp.include_router(chat.router)   # fallback — must be last
 
     notifications.setup_notification_listener(bot)
     setup_task_scheduler(bot)
