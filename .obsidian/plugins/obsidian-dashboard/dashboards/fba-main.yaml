@@ -1,0 +1,125 @@
+---
+title: FBA Workspace Dashboard
+description: Главный дашборд Food Business Academy
+layout: grid
+refreshInterval: 300
+---
+
+## 🚀 FBA WORKSPACE — Main Dashboard
+
+### 📊 PROJECT METRICS
+```
+```dataview
+TABLE WITHOUT ID
+  "📊 Всего задач" as "Метрика",
+  "86" as "Значение"
+FROM "LAUNCH-CHECKLIST"
+LIMIT 1
+```
+```
+
+### ✅ CHECKLIST STATUS
+```
+```dataview
+TABLE WITHOUT ID
+  "Завершено" as "Статус",
+  file.name as "Источник"
+FROM "LAUNCH-CHECKLIST"
+WHERE sync = true
+```
+```
+
+### 👥 AGENT ASSIGNMENTS
+```
+```dataview
+TABLE agent, COUNT as "Задач"
+FROM "LAUNCH-CHECKLIST"
+GROUP BY agent
+SORT COUNT DESC
+```
+```
+
+### 📱 PLATFORM STATUS
+```
+```dataview
+TABLE
+  platform as "Платформа",
+  status as "Статус",
+  rhythm as "Ритм"
+FROM "platforms"
+SORT platform ASC
+```
+```
+
+### 📅 WEEKLY BREAKDOWN
+```
+```dataview
+TABLE
+  week as "Неделя",
+  COUNT as "Задач"
+FROM "LAUNCH-CHECKLIST"
+GROUP BY week
+SORT week ASC
+```
+```
+
+### 🎯 PRIORITY DISTRIBUTION
+```
+```dataview
+TABLE
+  priority as "Приоритет",
+  COUNT as "Задач"
+FROM "LAUNCH-CHECKLIST"
+GROUP BY priority
+SORT priority DESC
+```
+```
+
+---
+
+## 🔄 SYNC STATUS
+
+**Last Updated:** `=moment(now).format("YYYY-MM-DD HH:mm:ss")`
+
+| Source | Status | Last Sync |
+|--------|--------|-----------|
+| Obsidian Vault | 🟢 Active | Auto |
+| Google Sheets | 🟢 Connected | CSV import |
+| Claude API | 🟢 Ready | On demand |
+| Dashboard | 🟢 Live | Real-time |
+
+---
+
+## 📋 ACTIVE SECTIONS
+
+- 🎯 **FOUNDATION** (6 tasks) — Brand, design, setup
+- 🎨 **DESIGN SYSTEM** (9 tasks) — All visual assets
+- 💬 **TELEGRAM** (12 tasks) — Main channel
+- 🤖 **LEAD MAGNET BOT** (10 tasks) — Lead capture
+- 📝 **CONTENT BOT** (7 tasks) — Voice to post
+- ▶️ **YOUTUBE** (11 tasks) — Long-form video
+- 🎵 **TIKTOK** (5 tasks) — Short-form
+- 📸 **INSTAGRAM** (7 tasks) — Reels + Stories
+- 🔵 **VK** (5 tasks) — Russian network
+- 📰 **DZEN** (4 tasks) — SEO articles
+- 💌 **MAX** (3 tasks) — VK messenger
+- 🧵 **THREADS** (3 tasks) — Meta's app
+
+---
+
+## ⚡ CRITICAL PATH
+
+1. **Week 1–2 (P0):** Foundation → TG Channel → Lead Magnet Bot
+2. **Week 2–3 (P0/P1):** YouTube + Content Bot → TikTok + Instagram
+3. **Week 3–4 (P1/P2):** VK + Дзен → MAX + Threads → Full Launch
+
+---
+
+## 🔗 LINKED FILES
+
+- [[LAUNCH-CHECKLIST|Master Checklist]]
+- [[FBA-Launch-Checklist.csv|CSV Source]]
+- [[platforms/telegram/calendar|TG Schedule]]
+- [[platforms/youtube/calendar|YouTube Schedule]]
+- [[agents/README|Agent Architecture]]
+

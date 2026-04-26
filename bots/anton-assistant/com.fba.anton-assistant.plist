@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fba.anton-assistant</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/anton/Food Business Academy/bots/anton-assistant/.venv/bin/python</string>
+        <string>/Users/anton/Food Business Academy/bots/anton-assistant/bot.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/anton/Food Business Academy/bots/anton-assistant</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/anton/Food Business Academy/bots/anton-assistant/logs/bot.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/anton/Food Business Academy/bots/anton-assistant/logs/bot.error.log</string>
+
+    <!-- Перезапускать при падении -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Запускать при логине -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Пауза перед рестартом при падении (секунды) -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+</dict>
+</plist>

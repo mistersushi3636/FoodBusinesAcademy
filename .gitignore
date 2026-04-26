@@ -1,0 +1,50 @@
+# Environment & secrets
+.env
+*.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Bot runtime
+bots/anton-assistant/logs/
+bots/anton-assistant/planner.db
+bots/*/logs/
+bots/*/inbox/.processed/
+
+# Whisper model cache
+~/.cache/huggingface/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Obsidian
+.obsidian/workspace
+.obsidian/workspace.json
+.obsidian/cache
+
+# Claude Code local data
+.claude/scheduled_tasks.lock
+.claude/settings.json
+.claude/settings.local.json
+
+# OMC session data (anywhere in project)
+**/.omc/
+
+# Obsidian plugin binaries
+.obsidian/plugins/*/main.js
+.obsidian/plugins/*/styles.css
+.obsidian/cache
+.obsidian/workspace
+.obsidian/workspace.json
+
+# Temporary files
+*.tmp
+*.log
