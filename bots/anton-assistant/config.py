@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     whisper_model: str = "medium"
     whisper_compute_type: str = "int8"
     claude_cli_path: str = str(Path(__file__).parent / "claude-wrapper.sh")
+    anthropic_api_key: str = ""
     notifications_enabled: bool = True
     log_level: str = "INFO"
 
