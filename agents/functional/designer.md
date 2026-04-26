@@ -1,6 +1,6 @@
 ---
 name: designer
-description: Держит единый визуальный стиль всех материалов, готовит брифы для Nano Banana 2 и Kling 3.0
+description: Держит единый визуальный стиль всех материалов, готовит брифы для DALL-E / GPT Image и Kling 3.0
 type: agent
 role: functional
 ---
