@@ -17,6 +17,7 @@ def main_menu() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="📆 Планер", callback_data="planner_menu"),
     )
     builder.row(
+        InlineKeyboardButton(text="✍️ Гуманизатор", callback_data="humanizer"),
         InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings"),
     )
     return builder.as_markup()
