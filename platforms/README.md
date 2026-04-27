@@ -1,53 +1,31 @@
 ---
-name: Platforms
-description: Готовые адаптированные материалы по каждой платформе
-type: hub
+name: Platforms (FBA 2.0)
+description: Три приоритетные площадки — TG, IG, YT. Остальные в .archive/platforms-v1/.
+updated: 2026-04-27
 ---
 
-# 📱 Platforms — площадки и их материалы
+# 📱 Platforms — FBA 2.0
 
-> Каждая папка платформы содержит финальные материалы, готовые к публикации или уже опубликованные. Планы и редплан — в `platforms/<name>/calendar.md`.
+| Платформа | URL | Режим |
+|---|---|---|
+| 🔷 [Telegram](telegram/format-rules.md) | https://t.me/Food_Busines_Academy | АВТО (Bot API) |
+| 📸 [Instagram](instagram/format-rules.md) | https://instagram.com/mr.sushishef | Semi-auto |
+| 📺 [YouTube](youtube/format-rules.md) | https://youtube.com/@Mistersushi36 | Semi-auto |
 
----
+## Воронка
 
-## Главный хаб: [🔷 Telegram](telegram/)
+```
+IG + YT  →  CTA →  TG (хаб)  →  leadmagnet-bot  →  PDF + подписка
+```
 
-Все остальные платформы ведут аудиторию сюда.
-
----
-
-## Приоритетные каналы охвата
-
-- [🎵 TikTok](tiktok/) — холодный охват, вертикальное видео
-- [📸 Instagram](instagram/) — Reels + карусели + Stories
-- [📺 YouTube](youtube/) — глубокая экспертиза + Shorts
-
-## Вторичные каналы
-
-- [🔵 ВКонтакте](vk/) — регионы, возраст 30+
-- [📰 Дзен](dzen/) — SEO-хвост
-- [🧵 Threads](threads/) — короткие касания
-- [💬 MAX](max/) — зеркало TG
-
----
-
-## Структура каждой платформы
+## Структура папки платформы
 
 ```
 platforms/<name>/
-├── strategy.md      ← стратегия платформы (из agents/platform/<name>.md)
-├── calendar.md      ← редплан платформы
-├── posts/ или соответствующая папка
-│   └── YYYY-MM-DD-название.md
-├── assets/          ← визуалы
-└── metrics.md       ← метрики (обновляет analytics)
+├── format-rules.md   ← правила формата (читает /draft skill)
+├── calendar.md       ← редплан
+└── published/        ← опубликованные материалы
+    └── YYYY-MM-DD-slug.md
 ```
 
----
-
-## Правила
-
-- Финальные материалы — здесь
-- Ядра материалов — в [content-bank](../content-bank/)
-- Правила адаптации — в [agents/platform/](../agents/platform/)
-- Визуальные шаблоны — в [design-system](../design-system/)
+Архивированные площадки (VK, Dzen, Threads, MAX) → `.archive/platforms-v1/`

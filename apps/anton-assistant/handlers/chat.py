@@ -1,6 +1,9 @@
+"""
+Chat handler: multi-turn conversation with Claude via Anthropic API.
+History stored in SQLite, system prompt cached for token savings.
+"""
 import asyncio
-from collections import deque
-from typing import Deque, Dict
+from pathlib import Path
 
 from aiogram import Router
 from aiogram.enums import ChatAction
@@ -9,46 +12,29 @@ from aiogram.fsm.state import default_state
 from aiogram.types import Message
 from loguru import logger
 
-from services.claude_cli import ask_claude
+from config import settings
+from apps.shared.anthropic_client import ask_with_history
+from apps.shared.memory import save_message, get_history
 
-router = Router()
+router = Router(name="chat")
 
-# Per-chat history: {chat_id: deque of (role, text)}
-_history: Dict[int, Deque[tuple]] = {}
-MAX_HISTORY = 10  # exchanges (20 messages)
+DB_PATH = Path(__file__).parents[1] / "fba.db"
 
-SYSTEM_PROMPT = """Ты личный ассистент Антона Коваленко — владельца «Мистер Суши» (Воронеж, 4 точки) и автора проекта Food Business Academy.
+SYSTEM_PROMPT = """Ты личный ассистент Антона Коваленко — владельца «Мистер Суши» (Воронеж) и автора Food Business Academy.
 
 Бизнес-контекст:
 - Доставка суши, средний чек 2100₽, маржа 20-22%
-- Точки: Воронеж, Острогожск, Семилуки, Рамонь
-- Личный бренд: эксперт по ресторанному бизнесу
-- 5 контент-пилларов: Деньги, Операционка, Маркетинг, Кейсы, Тренды
+- Точки: Воронеж, Острогожск (30 тыс. жителей, +4 мес в плюс), Семилуки (20 тыс., работает), Рамонь (15 тыс., закрыл через год)
+- Личный бренд: эксперт для рестораторов, без инфоцыганщины
+- 5 контент-пилларов: Деньги 30% / Операционка 20% / Маркетинг 20% / Кейсы 20% / Тренды 10%
+- Площадки: Telegram (главный хаб) + Instagram + YouTube
 
-Правила:
-- Отвечай на русском, кратко и конкретно
+Правила ответов:
+- Русский язык, кратко и конкретно
 - Практические советы применительно к ресторанному бизнесу
-- Учитывай контекст всего диалога ниже"""
-
-
-def _get_history(chat_id: int) -> Deque[tuple]:
-    if chat_id not in _history:
-        _history[chat_id] = deque(maxlen=MAX_HISTORY * 2)
-    return _history[chat_id]
-
-
-def _build_prompt(chat_id: int, user_text: str) -> str:
-    history = _get_history(chat_id)
-    parts = [SYSTEM_PROMPT]
-
-    if history:
-        parts.append("\n[История диалога]")
-        for role, text in history:
-            label = "Антон" if role == "user" else "Ассистент"
-            parts.append(f"{label}: {text}")
-
-    parts.append(f"\n[Текущее сообщение]\nАнтон: {user_text}\nАссистент:")
-    return "\n".join(parts)
+- Не «можно рассмотреть», а «сделай X потому что Y»
+- Числа и примеры где возможно
+"""
 
 
 async def _typing_loop(message: Message, stop: asyncio.Event) -> None:
@@ -65,8 +51,13 @@ async def _typing_loop(message: Message, stop: asyncio.Event) -> None:
 
 @router.message(StateFilter(default_state), lambda m: m.text and m.text == "/clear")
 async def clear_history(message: Message) -> None:
-    _history.pop(message.chat.id, None)
-    await message.answer("История диалога очищена.")
+    # Mark all history as cleared by inserting a sentinel — simplest approach
+    # (actual rows stay, just reset by ignoring old ones via new /clear marker)
+    conn = __import__("sqlite3").connect(str(DB_PATH))
+    conn.execute("DELETE FROM conversations WHERE chat_id=?", (message.chat.id,))
+    conn.commit()
+    conn.close()
+    await message.answer("История диалога очищена. 🗑️")
 
 
 @router.message(StateFilter(default_state))
@@ -82,17 +73,26 @@ async def chat_with_claude(message: Message) -> None:
     typing_task = asyncio.create_task(_typing_loop(message, stop))
 
     try:
-        prompt = _build_prompt(chat_id, user_text)
-        response = await ask_claude(prompt, timeout=120)
+        # Load history from SQLite
+        history = get_history(DB_PATH, chat_id, limit=20)
+        history.append({"role": "user", "content": user_text})
+
+        response = await ask_with_history(
+            api_key=settings.anthropic_api_key,
+            system=SYSTEM_PROMPT,
+            messages=history,
+            max_tokens=1500,
+            cache_system=True,
+        )
 
         if response:
-            history = _get_history(chat_id)
-            history.append(("user", user_text))
-            history.append(("assistant", response))
+            # Persist to SQLite
+            save_message(DB_PATH, chat_id, "user", user_text)
+            save_message(DB_PATH, chat_id, "assistant", response)
             logger.info(f"Claude replied [{chat_id}]: {len(response)} chars")
         else:
-            response = "⚠️ Нет ответа от Claude. Попробуй ещё раз."
-            logger.warning(f"Empty Claude response [{chat_id}]")
+            response = "⚠️ Нет ответа. Попробуй ещё раз."
+            logger.warning(f"Empty response [{chat_id}]")
 
     except Exception as e:
         response = "⚠️ Ошибка. Попробуй ещё раз."
@@ -101,8 +101,9 @@ async def chat_with_claude(message: Message) -> None:
         stop.set()
         typing_task.cancel()
 
+    # Split long messages
     if len(response) > 4096:
         for i in range(0, len(response), 4096):
-            await message.answer(response[i:i + 4096])
+            await message.answer(response[i : i + 4096])
     else:
         await message.answer(response)

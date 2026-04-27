@@ -3,15 +3,22 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    # Telegram
     bot_token: str
     anton_chat_id: int
-    vault_path: Path = Path("/Users/anton/Food Business Academy")
-    whisper_model: str = "medium"
-    whisper_compute_type: str = "int8"
-    claude_cli_path: str = str(Path(__file__).parent / "claude-wrapper.sh")
-    anthropic_api_key: str = ""
-    notifications_enabled: bool = True
+    tg_channel_id: str = "@Food_Busines_Academy"  # for auto-posting
+    leadmagnet_bot_token: str = ""
+
+    # Paths
+    vault_path: Path = Path("/opt/fba/vault")
     log_level: str = "INFO"
+
+    # AI
+    anthropic_api_key: str = ""
+    openai_api_key: str = ""        # DALL-E 3 + Whisper API
+
+    # Notifications
+    notifications_enabled: bool = True
 
     class Config:
         env_file = ".env"
@@ -20,27 +27,26 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-
+# Vault paths
 VAULT = settings.vault_path
-IDEAS_INCOMING = VAULT / "ideas-bot" / "incoming"
-IDEAS_ANALYZING = VAULT / "ideas-bot" / "analyzing"
-IDEAS_REFINED = VAULT / "ideas-bot" / "refined"
-IDEAS_PLANNED = VAULT / "ideas-bot" / "planned"
-IDEAS_IN_PROGRESS = VAULT / "ideas-bot" / "in-progress"
-IDEAS_COMPLETED = VAULT / "ideas-bot" / "completed"
-IDEAS_ARCHIVED = VAULT / "ideas-bot" / "archived"
 
-METRICS_DIR = VAULT / "analytics" / "metrics"
-PLANS_DIR = VAULT / "content" / "plans"
+TRANSCRIPTS_INBOX  = VAULT / "knowledge-base" / "transcripts" / "inbox"
+TRANSCRIPTS_DIR    = VAULT / "knowledge-base" / "transcripts"
+CONTENT_DRAFTS     = VAULT / "content" / "drafts"
+CONTENT_PUBLISHED  = VAULT / "content" / "published"
+CONTENT_IDEAS      = VAULT / "content" / "ideas"
+CONTENT_PLANS      = VAULT / "content" / "plans"
+METRICS_DIR        = VAULT / "analytics" / "metrics"
+PATTERNS_FILE      = VAULT / "patterns" / "learnings.md"
+BRAND_DIR          = VAULT / "brand"
+BRAND_EXAMPLES_DIR = VAULT / "brand" / "examples"
+DESIGN_BRIEFS_DIR  = VAULT / "design-system" / "briefs"
 
-VOICE_INBOX = VAULT / "knowledge-base" / "transcripts" / "inbox"
+# Platform format rules (read by /draft skill)
+PLATFORM_RULES = {
+    "telegram":  VAULT / "platforms" / "telegram"  / "format-rules.md",
+    "instagram": VAULT / "platforms" / "instagram" / "format-rules.md",
+    "youtube":   VAULT / "platforms" / "youtube"   / "format-rules.md",
+}
 
-IDEA_STATUSES = [
-    ("incoming", "📥 Новые", IDEAS_INCOMING),
-    ("analyzing", "🔍 На анализе", IDEAS_ANALYZING),
-    ("refined", "✏️ Доработаны", IDEAS_REFINED),
-    ("planned", "📅 С планом", IDEAS_PLANNED),
-    ("in-progress", "⚡ В работе", IDEAS_IN_PROGRESS),
-    ("completed", "✅ Готовы", IDEAS_COMPLETED),
-    ("archived", "🗄️ Архив", IDEAS_ARCHIVED),
-]
+PLATFORMS = list(PLATFORM_RULES.keys())

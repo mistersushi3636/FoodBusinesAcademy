@@ -21,6 +21,11 @@ async def main() -> None:
     )
     dp = Dispatcher()
 
+    # Init DB (new unified SQLite via memory.py)
+    import orchestrator
+    orchestrator.setup()
+
+    # Keep planner DB for backward compat (task scheduler)
     from services.planner_db import init_db
     from services.task_scheduler import setup_task_scheduler
     await init_db()
@@ -33,12 +38,12 @@ async def main() -> None:
     dp.include_router(voice.router)
     dp.include_router(notifications.router)
     dp.include_router(humanizer.router)
-    dp.include_router(chat.router)   # fallback — must be last
+    dp.include_router(chat.router)      # fallback — must be last
 
     notifications.setup_notification_listener(bot)
     setup_task_scheduler(bot)
 
-    logger.info(f"Bot starting. Vault: {settings.vault_path}. Whisper: {settings.whisper_model}")
+    logger.info(f"Bot starting. Vault: {settings.vault_path}")
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 
