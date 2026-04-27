@@ -1,300 +1,130 @@
 ---
-name: Dashboard
-description: Главный дашборд Food Business Academy — процессы, статусы, метрики всех платформ
-type: dashboard
-updated: 2026-04-21
+name: FBA 2.0 Dashboard
+description: Главный командный центр Food Business Academy
+version: 2.0
+updated: 2026-04-27
 ---
 
 ```
- ┌─────────────────────────────────────────────────────────────┐
- │                                                             │
- │        F O O D    B U S I N E S S    A C A D E M Y          │
- │                                                             │
- │              Command center · мониторинг процессов          │
- │                                                             │
- └─────────────────────────────────────────────────────────────┘
+╔══════════════════════════════════════════════════════════════╗
+║              F B A   2 . 0   ·   D A S H B O A R D           ║
+║                                                              ║
+║  Voice → Post → Publish → Metrics · командный центр          ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
-> Одна страница → вся картина проекта. Минимализм, данные, навигация.
+> Один экран → весь проект. Минимализм, состояние, навигация.
 
----
+## ▸ Production
 
-## ▸ Навигация
+- **Server:** `mistersushi36.pro` (168.222.140.43, Ubuntu 24.04, swtest.ru)
+- **Bot anton-assistant:** `@your_assistant_bot` (личный, voice→post)
+- **Bot leadmagnet:** `@your_leadmagnet_bot` (выдача PDF)
+- **Dashboard URL:** https://mistersushi36.pro
 
-|  |  |  |
+## ▸ Площадки
+
+| Платформа | URL | Режим публикации |
 |---|---|---|
-| 🤖 [Agents](agents/README.md) | 🎨 [Design System](design-system/README.md) | 💎 [Lead Magnets](agents/lead-magnets/README.md) |
-| 📱 [Platforms](platforms/) | 📦 [Content Bank](content-bank/) | 📓 [Journal](JOURNAL.md) |
-| 🎭 [Brand](brand/) | 📚 [Knowledge Base](knowledge-base/) | 🗺️ [MOC](MOC.md) |
+| Telegram | https://t.me/Food_Busines_Academy | **АВТО** через Bot API |
+| Instagram | https://instagram.com/mr.sushishef | **Semi-auto** (бот → ЛС → ты) |
+| YouTube | https://youtube.com/@Mistersushi36 | **Semi-auto** (бот → ЛС → ты) |
 
----
-
-## ▸ Текущая фаза
+## ▸ Pipeline (state machine)
 
 ```
-Запуск · 90 дней · Неделя 1 из 13
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-██░░░░░░░░░░░░░░░░░░░░░░░░░░   8%
+[idle]
+  │ voice/text от Антона
+  ↓
+[captured]    /capture → идея в knowledge-base/transcripts/
+  │
+  ↓
+[drafting]    /draft(platform) × N платформ параллельно
+  │
+  ↓
+[visualizing] /visual → DALL-E картинка + Canva ТЗ
+  │
+  ↓
+[reviewing]   /critique → проверка тон/факты/длина
+  │
+  ↓
+[awaiting]    бот шлёт Антону превью + кнопки [Опубликовать / Правка / Отмена]
+  │
+  ↓
+[publishing]  TG: авто; IG/YT: draft в ЛС
+  │
+  ↓
+[learning]    /learn → метрики через 24/72/168ч → patterns/learnings.md
+  │
+  ↓
+[done]
 ```
 
-**Фокус недели:** инфраструктура агентов · первые 3 поста TG · пилот Shorts
+## ▸ Команда (7 skills, без агентов)
 
----
-
-## ▸ Команда агентов — статус
-
-### 🎯 Core
-
-| Агент | Роль | Статус |
+| Skill | Триггер | Output |
 |---|---|---|
-| [orchestrator](agents/orchestrator.md) | Координатор | ✅ Активен |
+| `/capture` | voice/text | `knowledge-base/transcripts/{date}-{slug}.md` |
+| `/draft` | idea + platform | `content/drafts/{date}-{platform}-{slug}.md` |
+| `/visual` | draft | DALL-E image + `design-system/briefs/{slug}.md` |
+| `/critique` | draft | inline review + edit |
+| `/publish` | approved draft | TG API call OR personal message |
+| `/plan` | cron Mon 11:00 | `content/plans/{YYYY-WW}-plan.md` |
+| `/learn` | metrics ingest | append `patterns/learnings.md` |
 
-### ⚙️ Functional
+## ▸ Стек
 
-| Агент | Роль | Статус |
+| Слой | Технология |
+|---|---|
+| LLM | Anthropic API (Claude Sonnet 4.6) + prompt caching |
+| Image | OpenAI DALL-E 3 API |
+| Voice | OpenAI Whisper API |
+| Bot framework | aiogram 3 (asyncio) |
+| State | SQLite (per-project) |
+| Memory | `patterns/learnings.md` + SQLite vector index (если понадобится) |
+| Dashboard | FastAPI + Jinja templates |
+| Reverse proxy | nginx (на сервере, порты 80/443) |
+| SSL | certbot (Let's Encrypt) |
+| Process mgr | systemd (autorestart, on-boot) |
+| Scheduler | systemd timer (Mon 11:00) |
+
+## ▸ Брендовая база
+
+- [brand/positioning.md](brand/positioning.md) — позиционирование
+- [brand/audience.md](brand/audience.md) — 3 портрета ЦА
+- [brand/tone-of-voice.md](brand/tone-of-voice.md) — голос
+- `brand/examples/` — реальные посты Антона (нужно заполнить!)
+
+## ▸ Пиллары (контент-рубрики)
+
+| Пиллар | Доля | Описание |
 |---|---|---|
-| [content-adapter](agents/functional/content-adapter.md) | Адаптация источников | ✅ Активен |
-| [research](agents/functional/research.md) | Разведка | ✅ Активен |
-| [calendar](agents/functional/calendar.md) | Редплан | ✅ Активен |
-| [analytics](agents/functional/analytics.md) | Метрики + обучение | ✅ Активен |
-| [designer](agents/functional/designer.md) | Визуал | ✅ Активен |
-| [editor](agents/functional/editor.md) | Вычитка | ✅ Активен |
+| 💰 Деньги | 30% | маржа, юнит-экономика, чеки |
+| ⚙️ Операционка | 20% | найм, КПИ, регламенты |
+| 📣 Маркетинг | 20% | трафик, акции, упаковка |
+| 📖 Кейсы | 20% | свои филиалы, ошибки, успехи |
+| 🔮 Тренды | 10% | F&B новости, инструменты |
 
-### 📱 Platform
+## ▸ Память
 
-| Агент | Платформа | Статус |
-|---|---|---|
-| [telegram](agents/platform/telegram.md) | 🔷 Telegram (HUB) | 🟢 Приоритет |
-| [tiktok](agents/platform/tiktok.md) | 🎵 TikTok | 🟢 Приоритет |
-| [instagram](agents/platform/instagram.md) | 📸 Instagram | 🟢 Приоритет |
-| [youtube](agents/platform/youtube.md) | 📺 YouTube | 🟢 Приоритет |
-| [vk](agents/platform/vk.md) | 🔵 ВКонтакте | 🟡 Вторично |
-| [dzen](agents/platform/dzen.md) | 📰 Дзен | 🟡 Вторично |
-| [threads](agents/platform/threads.md) | 🧵 Threads | 🟡 Вторично |
-| [max](agents/platform/max.md) | 💬 MAX | ⚪ Зеркало |
+- [JOURNAL.md](JOURNAL.md) — решения и инсайты
+- [patterns/learnings.md](patterns/learnings.md) — что зашло / не зашло (auto-update)
+- [analytics/metrics/](analytics/metrics/) — метрики по неделям
 
-### 💎 Lead Magnets
+## ▸ Что было до 2.0 (архив)
 
-| Агент | Этап | Статус |
-|---|---|---|
-| [researcher](agents/lead-magnets/researcher.md) | 1 — исследование | ✅ Активен |
-| [architect](agents/lead-magnets/architect.md) | 2 — концепция | ✅ Активен |
-| [producer](agents/lead-magnets/producer.md) | 3 — производство | ✅ Активен |
+- `.archive/agents-v1/` — 18 .md ролей (orchestrator + 7 functional + 8 platform + 3 lead-magnets)
+- `.archive/platforms-v1/` — VK, Dzen, Threads, MAX
+- `.archive/skills-v1/` — старые 6 skills
+- `.archive/meta-docs-v1/` — WORKSPACE, SYNC-SYSTEM, MOC, LAUNCH-CHECKLIST
+- `.archive/bots-v1/` — стабы (ai-consultant, content-assistant, sales-bot)
 
----
-
-## ▸ Воронка
-
-```
- TikTok · YT · Reels · VK · Dzen · Threads
-            │
-            ▼  CTA в Telegram
-    ┌─────────────────────┐
-    │   TELEGRAM  🔷 HUB  │
-    └─────────────────────┘
-            │
-            ▼  /start в боте
-    ┌─────────────────────┐
-    │   Lead Magnet Bot   │
-    └─────────────────────┘
-            │
-            ▼  выдача PDF / видео
-    ┌─────────────────────┐
-    │   Подписка на TG    │
-    └─────────────────────┘
-            │
-            ▼  прогрев
-    ┌─────────────────────┐
-    │  Консультация / Курс│
-    └─────────────────────┘
-```
-
----
-
-## ▸ Pipeline контента
-
-```dataview
-TABLE WITHOUT ID
-  file.link AS "Материал",
-  platform AS "Платформа",
-  pillar AS "Пиллар",
-  status AS "Статус"
-FROM "platforms" OR "content/ideas"
-WHERE status != "опубликовано"
-SORT status ASC, file.mtime DESC
-LIMIT 15
-```
-
----
-
-## ▸ Метрики недели
-
-### Идеи в банке
-
-```dataview
-TABLE WITHOUT ID
-  status AS "Статус",
-  length(rows) AS "Кол-во"
-FROM "content/ideas"
-GROUP BY status
-```
-
-### Готово к публикации
-
-```dataview
-TABLE WITHOUT ID
-  file.link AS "Материал",
-  platform AS "Платформа",
-  publish_date AS "Дата"
-FROM "platforms" OR "content"
-WHERE status = "готов"
-SORT publish_date ASC
-LIMIT 10
-```
-
-### Опубликовано за 7 дней
-
-```dataview
-TABLE WITHOUT ID
-  file.link AS "Материал",
-  platform AS "Платформа",
-  pillar AS "Пиллар"
-FROM "platforms" OR "content"
-WHERE status = "опубликовано" AND publish_date >= date(today) - dur(7 days)
-SORT publish_date DESC
-```
-
----
-
-## ▸ Распределение по пилларам
-
-Цель:   💰 30%   ⚙️ 20%   📣 20%   📖 20%   🔮 10%
-
-```dataview
-TABLE WITHOUT ID
-  pillar AS "Пиллар",
-  length(rows) AS "Всего",
-  length(filter(rows, (r) => r.status = "опубликовано")) AS "Опубл."
-FROM "platforms" OR "content"
-WHERE pillar != null
-GROUP BY pillar
-```
-
----
-
-## ▸ Распределение по платформам
-
-```dataview
-TABLE WITHOUT ID
-  platform AS "Платформа",
-  length(rows) AS "Всего",
-  length(filter(rows, (r) => r.status = "готов")) AS "Готово",
-  length(filter(rows, (r) => r.status = "опубликовано")) AS "Вышло"
-FROM "platforms"
-WHERE platform != null
-GROUP BY platform
-```
-
----
-
-## ▸ Календарь следующих 14 дней
-
-```dataview
-TABLE WITHOUT ID
-  publish_date AS "Дата",
-  platform AS "Платформа",
-  pillar AS "Пиллар",
-  file.link AS "Материал"
-FROM "platforms" OR "content"
-WHERE publish_date >= date(today) AND publish_date <= date(today) + dur(14 days)
-SORT publish_date ASC
-```
-
----
-
-## ▸ Лид-магниты
-
-```dataview
-TABLE WITHOUT ID
-  file.link AS "Магнит",
-  format AS "Формат",
-  target_audience AS "ЦА",
-  status AS "Статус"
-FROM "lead-magnets/concepts" OR "lead-magnets/published"
-SORT status ASC
-```
-
----
-
-## ▸ Топ публикации (по метрикам)
-
-*Заполняется `analytics` после первых 10 публикаций.*
-
-```dataview
-TABLE WITHOUT ID
-  file.link AS "Материал",
-  platform AS "Платформа",
-  metrics.views_7d AS "Просмотры",
-  metrics.tg_subs_delta_7d AS "Подписки в TG"
-FROM "platforms"
-WHERE status = "опубликовано" AND metrics != null
-SORT metrics.views_7d DESC
-LIMIT 10
-```
-
----
-
-## ▸ Последние инсайты analytics
-
-Правила, которые `analytics` обновил у других агентов:
-
-```dataview
-LIST
-FROM "analytics"
-WHERE contains(file.name, "weekly") OR contains(file.name, "insight")
-SORT file.mtime DESC
-LIMIT 5
-```
-
----
-
-## ▸ Источники и разборы
-
-```dataview
-LIST file.link
-FROM "knowledge-base/external-sources"
-WHERE file.name = "README"
-```
-
----
-
-## ▸ Последние записи в журнале
-
-```dataview
-LIST file.mtime
-FROM "JOURNAL"
-SORT file.mtime DESC
-LIMIT 3
-```
-
-[→ Открыть Journal](JOURNAL.md)
-
----
-
-## ▸ Быстрые действия
-
-- ➕ **Новая идея** → шаблон `_templates/idea`
-- 📝 **Новый пост** → шаблон `_templates/post`
-- 🎬 **Сценарий шорта** → шаблон `_templates/script`
-- 📖 **Новый кейс** → шаблон `_templates/case-study`
-- 💎 **Новый лид-магнит** → [lead-magnets/README.md](agents/lead-magnets/README.md)
-- 🔍 **Поиск** → Cmd+P (быстрый) · Cmd+Shift+F (полный)
+**Почему ушло:** дублирование, нет рантайма, 8 платформ распыляли ресурсы. См. `JOURNAL.md` за 2026-04-27.
 
 ---
 
 ```
-  ───────────────────────────────────────────────────────
-   Обновления · anton@foodbusinessacademy · 2026-04-21
-  ───────────────────────────────────────────────────────
+  ──────────────────────────────────────────────────────
+  FBA 2.0 · anton@mistersushi36.pro · 2026-04-27
+  ──────────────────────────────────────────────────────
 ```
-# test
