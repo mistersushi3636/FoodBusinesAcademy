@@ -1,0 +1,115 @@
+{% extends "_dash_base.html" %}
+{% block title %}{{ project.name }} — Идеи{% endblock %}
+{% block extra_dash_style %}
+.ideas-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.ftab{padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid var(--border);transition:.12s}
+.ftab:hover{color:var(--text);text-decoration:none}
+.ftab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.ftab-sep{width:1px;height:24px;background:var(--border);align-self:center}
+.idea-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;gap:12px;align-items:flex-start;margin-bottom:8px;transition:.12s}
+.idea-card:hover{border-color:var(--accent)}
+.idea-body{flex:1}
+.idea-content{font-size:13px;line-height:1.6;margin-bottom:6px}
+.idea-meta{display:flex;align-items:center;gap:8px}
+.idea-date{font-size:11px;color:var(--muted)}
+.idea-source{font-size:10px;padding:1px 6px;border-radius:3px;background:var(--bg);border:1px solid var(--border);color:var(--muted)}
+.idea-actions{display:flex;gap:4px;flex-shrink:0}
+/* Добавить форма */
+.add-idea-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:20px}
+.add-idea-wrap h2{font-size:14px;font-weight:700;margin-bottom:14px}
+.add-idea-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:end}
+.cat-badge-idea{background:#1e2a3e;color:var(--blue)}
+.cat-badge-note{background:#1e293b;color:var(--muted)}
+.cat-badge-insight{background:#2d1f5e;color:var(--purple)}
+.cat-badge-task{background:#1c3a2e;color:var(--green)}
+{% endblock %}
+{% block dash_content %}
+
+<div class="ideas-header">
+  <span style="font-size:18px;font-weight:700">Идеи и заметки</span>
+  <span style="font-size:12px;color:var(--muted)">Синхронизируется с @AntonFBAbot</span>
+</div>
+
+<!-- Добавить идею -->
+<div class="add-idea-wrap">
+  <h2>+ Добавить</h2>
+  <form method="post" action="/p/{{ project.slug }}/ideas/add">
+    <div class="add-idea-row">
+      <div class="form-group" style="margin:0">
+        <label>Идея / заметка / инсайт</label>
+        <input name="content" placeholder="Запиши мысль..." required>
+      </div>
+      <div class="form-group" style="margin:0;min-width:120px">
+        <label>Тип</label>
+        <select name="category">
+          {% for c in categories %}
+          <option value="{{ c }}">{{ cat_labels[c] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="padding-bottom:1px">
+        <button type="submit" class="btn btn-primary">Добавить</button>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:10px">
+      <label>Теги (через запятую)</label>
+      <input name="tags" placeholder="маркетинг, контент, идея...">
+    </div>
+  </form>
+</div>
+
+<!-- Фильтры -->
+<div class="filter-bar">
+  <a href="/p/{{ project.slug }}/ideas?status=new&category={{ cat_filter }}"
+     class="ftab {% if status_filter=='new' %}active{% endif %}">Новые</a>
+  <a href="/p/{{ project.slug }}/ideas?status=reviewed&category={{ cat_filter }}"
+     class="ftab {% if status_filter=='reviewed' %}active{% endif %}">Просмотрено</a>
+  <a href="/p/{{ project.slug }}/ideas?status=&category={{ cat_filter }}"
+     class="ftab {% if not status_filter %}active{% endif %}">Все</a>
+  <div class="ftab-sep"></div>
+  <a href="/p/{{ project.slug }}/ideas?status={{ status_filter }}&category="
+     class="ftab {% if not cat_filter %}active{% endif %}">Все типы</a>
+  {% for c in categories %}
+  <a href="/p/{{ project.slug }}/ideas?status={{ status_filter }}&category={{ c }}"
+     class="ftab {% if cat_filter==c %}active{% endif %}">{{ cat_labels[c] }}</a>
+  {% endfor %}
+</div>
+
+<!-- Список идей -->
+{% if ideas %}
+  {% for i in ideas %}
+  <div class="idea-card">
+    <div class="idea-body">
+      <div class="idea-content">{{ i.content }}</div>
+      <div class="idea-meta">
+        <span class="idea-date">{{ i.created_at[:16] }}</span>
+        <span class="badge cat-badge-{{ i.category }}">{{ cat_labels.get(i.category, i.category) }}</span>
+        <span class="idea-source">{{ '🤖 бот' if i.source == 'bot' else '✏️ вручную' }}</span>
+        {% if i.tags %}
+        <span style="font-size:10px;color:var(--muted)">{{ i.tags }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="idea-actions">
+      {% if i.status == 'new' %}
+      <form method="post" action="/p/{{ project.slug }}/ideas/{{ i.id }}/review" style="margin:0">
+        <button type="submit" class="btn btn-ghost btn-sm" title="Отметить просмотренным">👁</button>
+      </form>
+      {% endif %}
+      <form method="post" action="/p/{{ project.slug }}/ideas/{{ i.id }}/archive" style="margin:0">
+        <button type="submit" class="btn btn-ghost btn-sm" title="Архивировать">📦</button>
+      </form>
+      <form method="post" action="/p/{{ project.slug }}/ideas/{{ i.id }}/delete" style="margin:0"
+            onsubmit="return confirm('Удалить?')">
+        <button type="submit" class="btn btn-danger btn-sm">✕</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="empty" style="padding:60px 0">
+    <p style="color:var(--muted)">Нет идей по выбранному фильтру</p>
+  </div>
+{% endif %}
+{% endblock %}

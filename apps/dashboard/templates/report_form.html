@@ -1,0 +1,120 @@
+{% extends "_dash_base.html" %}
+{% block title %}{{ project.name }} — Новый отчёт{% endblock %}
+{% block extra_dash_style %}
+.report-form-wrap{max-width:720px}
+.platform-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:16px}
+.platform-section h3{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.platform-tg h3{color:var(--blue)}
+.platform-ig h3{color:var(--purple)}
+.platform-yt h3{color:var(--red)}
+.platform-biz h3{color:var(--orange)}
+.platform-extra h3{color:var(--accent)}
+.hint-text{font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.5;background:var(--s2);padding:10px 14px;border-radius:6px;border-left:3px solid var(--accent)}
+.submit-bar{display:flex;align-items:center;gap:12px;margin-top:8px}
+.submit-bar .note{font-size:11px;color:var(--muted)}
+{% endblock %}
+{% block dash_content %}
+
+<div class="report-form-wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <h1 style="font-size:18px;font-weight:700">Новый отчёт</h1>
+    <a href="/p/{{ project.slug }}/reports" class="btn btn-ghost btn-sm">← Назад</a>
+  </div>
+
+  <div class="hint-text">
+    Заполни метрики за неделю. После сохранения Claude автоматически сгенерирует анализ: оценку, достижения, проблемные зоны и рекомендации. Займёт ~10 секунд.
+  </div>
+
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+  <form method="post">
+    <!-- Период -->
+    <div class="platform-section">
+      <h3>📅 Период</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>Начало недели (пн)</label>
+          <input type="date" name="week_start" value="{{ week_start }}" required>
+        </div>
+        <div class="form-group">
+          <label>Конец недели (вс)</label>
+          <input type="date" name="week_end" value="{{ week_end }}" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- Telegram -->
+    <div class="platform-section platform-tg">
+      <h3>📱 Telegram</h3>
+      <div class="metrics-grid">
+        {% for key, label in metrics_fields.telegram %}
+        <div class="form-group">
+          <label>{{ label }}</label>
+          <input type="number" name="telegram_{{ key }}" placeholder="0" min="0">
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Instagram -->
+    <div class="platform-section platform-ig">
+      <h3>📸 Instagram</h3>
+      <div class="metrics-grid">
+        {% for key, label in metrics_fields.instagram %}
+        <div class="form-group">
+          <label>{{ label }}</label>
+          <input type="number" name="instagram_{{ key }}" placeholder="0" min="0">
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- YouTube -->
+    <div class="platform-section platform-yt">
+      <h3>🎥 YouTube</h3>
+      <div class="metrics-grid">
+        {% for key, label in metrics_fields.youtube %}
+        <div class="form-group">
+          <label>{{ label }}</label>
+          <input type="number" name="youtube_{{ key }}" placeholder="0" min="0">
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Бизнес -->
+    <div class="platform-section platform-biz">
+      <h3>💼 Бизнес</h3>
+      <div class="metrics-grid">
+        {% for key, label in metrics_fields.business %}
+        <div class="form-group">
+          <label>{{ label }}</label>
+          <input type="number" name="business_{{ key }}" placeholder="0" min="0">
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Дополнительно -->
+    <div class="platform-section platform-extra">
+      <h3>✨ Дополнительно</h3>
+      <div class="form-group">
+        <label>Лучший контент недели</label>
+        <input name="best_content" placeholder="Название поста / видео / рилса">
+      </div>
+      <div class="form-group">
+        <label>Главный вывод недели</label>
+        <textarea name="main_insight" rows="3" placeholder="Что понял? Что сработало? Что нет?"></textarea>
+      </div>
+    </div>
+
+    <div class="submit-bar">
+      <button type="submit" class="btn btn-primary" onclick="this.textContent='Анализирую…';this.disabled=true;this.form.submit()">
+        Сохранить и получить анализ
+      </button>
+      <span class="note">~10 сек · Claude проанализирует данные</span>
+    </div>
+  </form>
+</div>
+{% endblock %}

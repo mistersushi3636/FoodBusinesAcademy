@@ -1,0 +1,302 @@
+{% extends "_dash_base.html" %}
+{% block title %}{{ project.name }} — Обзор{% endblock %}
+{% block extra_dash_style %}
+/* Стат-боксы */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:24px}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
+.stat-num{font-size:28px;font-weight:800;line-height:1}
+.stat-label{font-size:11px;color:var(--muted);margin-top:4px}
+/* Дерево архитектуры */
+.arch-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px}
+.arch-tree{font-size:13px;line-height:1.8}
+.arch-tree ul{list-style:none;padding:0;margin:0}
+.arch-tree > ul > li > .t-label{font-size:15px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.arch-tree ul ul{padding-left:20px;position:relative}
+.arch-tree ul ul > li{position:relative;padding:1px 0 1px 18px}
+.arch-tree ul ul > li::before{content:'';position:absolute;left:0;top:0;bottom:0;border-left:1px solid var(--border)}
+.arch-tree ul ul > li:last-child::before{height:12px}
+.arch-tree ul ul > li::after{content:'';position:absolute;left:0;top:11px;width:14px;border-top:1px solid var(--border)}
+.t-label{display:inline-flex;align-items:center;gap:6px;padding:1px 0}
+.t-name{font-weight:500}
+.t-stat{font-size:11px;color:var(--muted);background:var(--bg);padding:1px 7px;border-radius:4px;border:1px solid var(--border);margin-left:2px}
+.t-ok .t-name{color:var(--green)}
+.t-warn .t-name{color:var(--yellow)}
+.t-bot .t-name{color:var(--purple)}
+.t-cal .t-name{color:var(--blue)}
+.t-rep .t-name{color:var(--orange)}
+.t-idea .t-name{color:var(--accent)}
+/* Последние события */
+.recent-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.recent-row:last-child{border-bottom:none}
+.recent-date{color:var(--muted);font-size:11px;width:80px;flex-shrink:0}
+.recent-title{flex:1;font-size:13px}
+.arch-edit-btn{font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;background:none;border:none;padding:0}
+.arch-edit-form{display:none;margin-top:12px}
+.arch-edit-form.open{display:block}
+{% endblock %}
+{% block dash_content %}
+
+<!-- Метрики-боксы -->
+<div class="stat-grid">
+  <div class="stat-box">
+    <div class="stat-num" style="color:var(--green)">{{ stats.events_done }}</div>
+    <div class="stat-label">Выполнено</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num" style="color:var(--blue)">{{ stats.events_planned }}</div>
+    <div class="stat-label">Запланировано</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num" style="color:var(--accent)">{{ stats.ideas_new }}</div>
+    <div class="stat-label">Новых идей</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num" style="color:var(--orange)">{{ stats.reports_total }}</div>
+    <div class="stat-label">Отчётов</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num" style="color:var(--text)">{{ stats.ideas_total }}</div>
+    <div class="stat-label">Всего идей</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num" style="color:var(--text)">{{ stats.events_total }}</div>
+    <div class="stat-label">Событий</div>
+  </div>
+</div>
+
+<!-- Дерево архитектуры -->
+<div class="arch-wrap section">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <span class="section-title" style="margin:0">Архитектура проекта</span>
+    <button class="arch-edit-btn" onclick="document.getElementById('archForm').classList.toggle('open')">
+      ✏️ Редактировать описание
+    </button>
+  </div>
+
+  <form id="archForm" class="arch-edit-form" method="post" action="/p/{{ project.slug }}/architecture">
+    <div class="form-group">
+      <label>Описание архитектуры (цель, ЦА, стратегия)</label>
+      <textarea name="architecture" rows="5" placeholder="Опиши цель, целевую аудиторию, стратегию, ключевые метрики...">{{ project.architecture }}</textarea>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('archForm').classList.remove('open')">Отмена</button>
+    </div>
+  </form>
+
+  {% if project.architecture %}
+  <div style="color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:16px;white-space:pre-wrap">{{ project.architecture }}</div>
+  {% endif %}
+
+  <!-- Динамическое дерево -->
+  <div class="arch-tree">
+    <ul>
+      <li>
+        <span class="t-label">
+          <span>📂</span>
+          <span class="t-name" style="font-size:16px;font-weight:800;color:var(--text)">{{ project.name }}</span>
+        </span>
+        <ul>
+          <!-- БОТ -->
+          <li>
+            <span class="t-label t-bot">
+              <span>🤖</span>
+              <span class="t-name">Бот @AntonFBAbot (Telegram)</span>
+            </span>
+            <ul>
+              <li>
+                <span class="t-label">
+                  <span>🎙️</span>
+                  <span class="t-name">Голос / текст → пайплайн (TG + IG + YT)</span>
+                </span>
+              </li>
+              <li>
+                <span class="t-label">
+                  <span>💬</span>
+                  <span class="t-name">Текстовый чат</span>
+                  <span class="t-stat">Anthropic API + история</span>
+                </span>
+              </li>
+              <li>
+                <span class="t-label">
+                  <span>💡</span>
+                  <span class="t-name">Идеи → синхронизация → дашборд</span>
+                  {% if stats.ideas_total > 0 %}
+                  <span class="t-stat">{{ stats.ideas_total }} идей</span>
+                  {% else %}
+                  <span class="t-stat" style="color:var(--yellow)">пусто</span>
+                  {% endif %}
+                </span>
+              </li>
+              <li>
+                <span class="t-label">
+                  <span>📊</span>
+                  <span class="t-name">Метрики (воскресенье 20:00)</span>
+                  {% if stats.latest_week %}
+                  <span class="t-stat t-ok">последние: {{ stats.latest_week }}</span>
+                  {% else %}
+                  <span class="t-stat" style="color:var(--yellow)">нет данных</span>
+                  {% endif %}
+                </span>
+              </li>
+            </ul>
+          </li>
+
+          <!-- КАЛЕНДАРЬ -->
+          <li>
+            <span class="t-label t-cal">
+              <span>📅</span>
+              <span class="t-name">Календарь-планер</span>
+              <span class="t-stat">{{ stats.events_total }} событий</span>
+            </span>
+            <ul>
+              <li>
+                <span class="t-label">
+                  <span>✅</span>
+                  <span class="t-name {% if stats.events_done > 0 %}t-ok{% endif %}">Выполнено: {{ stats.events_done }}</span>
+                </span>
+              </li>
+              <li>
+                <span class="t-label">
+                  <span>🔵</span>
+                  <span class="t-name">Запланировано: {{ stats.events_planned }}</span>
+                </span>
+              </li>
+            </ul>
+          </li>
+
+          <!-- ОТЧЁТЫ -->
+          <li>
+            <span class="t-label t-rep">
+              <span>📈</span>
+              <span class="t-name">Отчёты и метрики</span>
+              <span class="t-stat">{{ stats.reports_total }} отчётов</span>
+            </span>
+            <ul>
+              <li>
+                <span class="t-label">
+                  <span>📝</span>
+                  <span class="t-name">Ввод метрик — недельный шаблон</span>
+                  <span class="t-stat">TG + IG + YT + Бизнес</span>
+                </span>
+              </li>
+              <li>
+                <span class="t-label">
+                  <span>🧠</span>
+                  <span class="t-name">Анализ → Claude → выводы + рекомендации</span>
+                </span>
+              </li>
+            </ul>
+          </li>
+
+          <!-- ИДЕИ -->
+          <li>
+            <span class="t-label t-idea">
+              <span>💡</span>
+              <span class="t-name">Идеи и заметки</span>
+              {% if stats.ideas_new > 0 %}
+              <span class="t-stat" style="color:var(--accent)">{{ stats.ideas_new }} новых</span>
+              {% else %}
+              <span class="t-stat">{{ stats.ideas_total }} всего</span>
+              {% endif %}
+            </span>
+            <ul>
+              <li>
+                <span class="t-label">
+                  <span>🤖</span>
+                  <span class="t-name">Из бота (авто-синхронизация)</span>
+                </span>
+              </li>
+              <li>
+                <span class="t-label">
+                  <span>✏️</span>
+                  <span class="t-name">Ручной ввод (дашборд)</span>
+                </span>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<!-- Последние метрики -->
+{% if stats.latest_metrics %}
+<div class="section">
+  <div class="section-title">Метрики · неделя {{ stats.latest_week }}</div>
+  <div class="grid-4">
+    {% for platform, fields in metrics_fields.items() %}
+    {% set pdata = stats.latest_metrics.get(platform, {}) %}
+    {% if pdata %}
+    <div class="card">
+      <h2>{{ platform_labels[platform] }}</h2>
+      {% for key, label in fields %}
+      {% if pdata.get(key) and pdata[key] != '0' %}
+      <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <span style="color:var(--muted)">{{ label.split('(')[0].strip() }}</span>
+        <span style="font-weight:600">{{ pdata[key] }}</span>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Ближайшие события + свежие идеи -->
+<div class="grid-2">
+  <div class="card">
+    <h2>Ближайшие события</h2>
+    {% if recent_events %}
+      {% for e in recent_events[:6] %}
+      <div class="recent-row">
+        <span class="recent-date">{{ e.event_date }}</span>
+        <span class="recent-title">{{ e.title }}</span>
+        {% if e.status == 'done' %}
+        <span class="badge badge-green">✓</span>
+        {% elif e.status == 'planned' %}
+        <span class="badge badge-blue">план</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">Нет событий · <a href="/p/{{ project.slug }}/calendar">Добавить</a></div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Новые идеи</h2>
+    {% if recent_ideas %}
+      {% for i in recent_ideas %}
+      <div class="recent-row">
+        <span class="recent-date">{{ i.created_at[:10] }}</span>
+        <span class="recent-title">{{ i.content[:80] }}{% if i.content|length > 80 %}…{% endif %}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">Нет идей · <a href="/p/{{ project.slug }}/ideas">Добавить</a></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Последние отчёты -->
+{% if recent_reports %}
+<div class="section" style="margin-top:16px">
+  <div class="section-title">Последние отчёты</div>
+  {% for r in recent_reports %}
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-weight:600">Неделя {{ r.period_start }} — {{ r.period_end }}</span>
+      <a href="/p/{{ project.slug }}/reports/{{ r.id }}" class="btn btn-ghost btn-sm">Открыть</a>
+    </div>
+    {% if r.analysis %}
+    <div style="color:var(--muted);font-size:12px;line-height:1.6">{{ r.analysis[:300] }}{% if r.analysis|length > 300 %}…{% endif %}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% endif %}
+
+{% endblock %}

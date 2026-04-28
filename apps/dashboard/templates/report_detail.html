@@ -1,0 +1,80 @@
+{% extends "_dash_base.html" %}
+{% block title %}{{ project.name }} — Отчёт {{ report.period_start }}{% endblock %}
+{% block extra_dash_style %}
+.report-wrap{max-width:800px}
+.report-h{margin-bottom:20px}
+.report-title{font-size:20px;font-weight:800;margin-bottom:4px}
+.report-sub{color:var(--muted);font-size:13px}
+.analysis-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px}
+.analysis-box h2{margin-bottom:12px}
+.analysis-text{font-size:14px;line-height:1.8;white-space:pre-wrap;color:var(--text)}
+.platform-block{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.platform-block h3{font-size:13px;font-weight:700;margin-bottom:12px}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.metric-row:last-child{border-bottom:none}
+.metric-label{color:var(--muted);font-size:13px}
+.metric-value{font-weight:700;font-size:14px}
+{% endblock %}
+{% block dash_content %}
+
+<div class="report-wrap">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
+    <div>
+      <div class="report-title">Неделя {{ report.period_start }} — {{ report.period_end }}</div>
+      <div class="report-sub">Создан: {{ report.created_at[:16] }}</div>
+    </div>
+    <a href="/p/{{ project.slug }}/reports" class="btn btn-ghost btn-sm">← Все отчёты</a>
+  </div>
+
+  <!-- Анализ Claude -->
+  {% if report.analysis %}
+  <div class="analysis-box">
+    <h2>🧠 Анализ недели</h2>
+    <div class="analysis-text">{{ report.analysis }}</div>
+  </div>
+  {% endif %}
+
+  <!-- Данные по платформам -->
+  {% set raw = report.raw_data %}
+  {% for platform, fields in metrics_fields.items() %}
+  {% set pdata = raw.get(platform, {}) %}
+  {% if pdata %}
+  <div class="platform-block">
+    <h3>
+      {% if platform == 'telegram' %}📱{% elif platform == 'instagram' %}📸{% elif platform == 'youtube' %}🎥{% else %}💼{% endif %}
+      {{ platform_labels[platform] }}
+    </h3>
+    {% for key, label in fields %}
+    {% set val = pdata.get(key, '') %}
+    {% if val and val != '0' %}
+    <div class="metric-row">
+      <span class="metric-label">{{ label }}</span>
+      <span class="metric-value">{{ val }}</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endfor %}
+
+  <!-- Дополнительно -->
+  {% set extra = raw.get('extra', {}) %}
+  {% if extra.get('best_content') or extra.get('main_insight') %}
+  <div class="platform-block">
+    <h3>✨ Дополнительно</h3>
+    {% if extra.get('best_content') %}
+    <div class="metric-row">
+      <span class="metric-label">Лучший контент</span>
+      <span style="font-size:13px;font-weight:500">{{ extra.best_content }}</span>
+    </div>
+    {% endif %}
+    {% if extra.get('main_insight') %}
+    <div style="margin-top:10px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">ГЛАВНЫЙ ВЫВОД</div>
+      <div style="font-size:13px;line-height:1.6">{{ extra.main_insight }}</div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

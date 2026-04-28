@@ -13,7 +13,7 @@ from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
 
 from config import settings
-from handlers import voice, chat
+from handlers import voice, chat, metrics
 
 _start_router = Router(name="start")
 
@@ -61,8 +61,9 @@ async def main() -> None:
     orchestrator.setup()
 
     dp.include_router(_start_router)
+    dp.include_router(metrics.router)  # before chat — detects filled metrics forms
     dp.include_router(voice.router)
-    dp.include_router(chat.router)   # fallback — must be last
+    dp.include_router(chat.router)     # fallback — must be last
 
     logger.info(f"FBA Assistant V3 starting. Vault: {settings.vault_path}")
     await bot.delete_webhook(drop_pending_updates=True)

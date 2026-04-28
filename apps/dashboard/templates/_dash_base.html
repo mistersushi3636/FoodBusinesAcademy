@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block extra_style %}
+.dash-wrap{min-height:100vh;display:flex;flex-direction:column}
+.dash-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:52px;position:sticky;top:0;z-index:100}
+.dash-back{color:var(--muted);font-size:12px;padding-right:16px;border-right:1px solid var(--border);margin-right:16px;text-decoration:none}
+.dash-back:hover{color:var(--text);text-decoration:none}
+.dash-project{font-size:14px;font-weight:700;margin-right:24px;white-space:nowrap}
+.dash-nav{display:flex;align-items:center;gap:2px;flex:1}
+.nav-link{padding:6px 14px;border-radius:6px;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;transition:.12s;white-space:nowrap}
+.nav-link:hover{color:var(--text);background:var(--s2);text-decoration:none}
+.nav-link.active{color:var(--text);background:var(--s2)}
+.dash-logout{color:var(--muted);font-size:12px;text-decoration:none;white-space:nowrap}
+.dash-logout:hover{color:var(--red);text-decoration:none}
+.dash-main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:24px 20px}
+.section{margin-bottom:24px}
+.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:12px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:700px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}.dash-nav{gap:0}.nav-link{padding:6px 10px;font-size:12px}}
+{% block extra_dash_style %}{% endblock %}
+{% endblock %}
+{% block content %}
+<div class="dash-wrap">
+  <header class="dash-header">
+    <a href="/" class="dash-back">← Проекты</a>
+    <span class="dash-project">{{ project.name }}</span>
+    <nav class="dash-nav">
+      <a href="/p/{{ project.slug }}/" class="nav-link {% if tab=='overview' %}active{% endif %}">Обзор</a>
+      <a href="/p/{{ project.slug }}/calendar" class="nav-link {% if tab=='calendar' %}active{% endif %}">Календарь</a>
+      <a href="/p/{{ project.slug }}/reports" class="nav-link {% if tab=='reports' %}active{% endif %}">Отчёты</a>
+      <a href="/p/{{ project.slug }}/ideas" class="nav-link {% if tab=='ideas' %}active{% endif %}">Идеи</a>
+    </nav>
+    <a href="/p/{{ project.slug }}/logout" class="dash-logout">Выйти</a>
+  </header>
+  <main class="dash-main">
+    {% block dash_content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "_dash_base.html" %}
+{% block title %}{{ project.name }} — Отчёты{% endblock %}
+{% block extra_dash_style %}
+.reports-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.period-tabs{display:flex;gap:4px}
+.ptab{padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid var(--border);transition:.12s}
+.ptab:hover{color:var(--text);text-decoration:none}
+.ptab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.report-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:12px;transition:.15s}
+.report-card:hover{border-color:var(--accent)}
+.report-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.report-period{font-size:15px;font-weight:700}
+.report-analysis{color:var(--muted);font-size:13px;line-height:1.6}
+.metrics-mini{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.mm-item{text-align:center}
+.mm-label{font-size:10px;color:var(--muted)}
+.mm-val{font-size:14px;font-weight:700}
+{% endblock %}
+{% block dash_content %}
+
+<div class="reports-header">
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="font-size:18px;font-weight:700">Отчёты</span>
+    <div class="period-tabs">
+      <a href="/p/{{ project.slug }}/reports?period=week"
+         class="ptab {% if period_filter=='week' %}active{% endif %}">Недели</a>
+      <a href="/p/{{ project.slug }}/reports?period=all"
+         class="ptab {% if period_filter=='all' %}active{% endif %}">Все</a>
+    </div>
+  </div>
+  <a href="/p/{{ project.slug }}/reports/new" class="btn btn-primary">+ Новый отчёт</a>
+</div>
+
+{% if reports %}
+  {% for r in reports %}
+  <div class="report-card">
+    <div class="report-card-header">
+      <div>
+        <div class="report-period">Неделя: {{ r.period_start }} — {{ r.period_end }}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Создан: {{ r.created_at[:16] }}</div>
+      </div>
+      <a href="/p/{{ project.slug }}/reports/{{ r.id }}" class="btn btn-ghost btn-sm">Подробнее →</a>
+    </div>
+
+    <!-- Краткие метрики -->
+    {% if r.raw_data %}
+    <div class="metrics-mini">
+      {% set tg = r.raw_data.get('telegram', {}) %}
+      {% set ig = r.raw_data.get('instagram', {}) %}
+      {% set yt = r.raw_data.get('youtube', {}) %}
+      {% set biz = r.raw_data.get('business', {}) %}
+      {% if tg.get('subscribers_total') %}
+      <div class="mm-item">
+        <div class="mm-label">TG подписчики</div>
+        <div class="mm-val" style="color:var(--blue)">{{ tg.subscribers_total }}</div>
+      </div>
+      {% endif %}
+      {% if tg.get('subscribers_growth') %}
+      <div class="mm-item">
+        <div class="mm-label">TG прирост</div>
+        <div class="mm-val" style="color:var(--green)">+{{ tg.subscribers_growth }}</div>
+      </div>
+      {% endif %}
+      {% if ig.get('subscribers_total') %}
+      <div class="mm-item">
+        <div class="mm-label">IG подписчики</div>
+        <div class="mm-val" style="color:var(--purple)">{{ ig.subscribers_total }}</div>
+      </div>
+      {% endif %}
+      {% if yt.get('subscribers_total') %}
+      <div class="mm-item">
+        <div class="mm-label">YT подписчики</div>
+        <div class="mm-val" style="color:var(--red)">{{ yt.subscribers_total }}</div>
+      </div>
+      {% endif %}
+      {% if biz.get('inquiries') %}
+      <div class="mm-item">
+        <div class="mm-label">Заявок</div>
+        <div class="mm-val" style="color:var(--orange)">{{ biz.inquiries }}</div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if r.analysis %}
+    <div class="report-analysis">{{ r.analysis[:350] }}{% if r.analysis|length > 350 %}… <a href="/p/{{ project.slug }}/reports/{{ r.id }}">читать полностью</a>{% endif %}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="empty" style="padding:60px 0">
+    <p style="margin-bottom:16px;color:var(--muted)">Отчётов пока нет</p>
+    <a href="/p/{{ project.slug }}/reports/new" class="btn btn-primary">Создать первый отчёт</a>
+  </div>
+{% endif %}
+{% endblock %}
