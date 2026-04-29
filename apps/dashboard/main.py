@@ -36,8 +36,7 @@ _db.init_master_db()
 # ── helpers ──────────────────────────────────────────────────────────────────
 
 def _render(request: Request, tpl: str, ctx: dict) -> HTMLResponse:
-    ctx["request"] = request
-    return templates.TemplateResponse(tpl, ctx)
+    return templates.TemplateResponse(request=request, name=tpl, context=ctx)
 
 
 def _authed(request: Request, slug: str):
