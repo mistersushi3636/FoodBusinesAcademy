@@ -1,0 +1,125 @@
+{% extends "_dash_base.html" %}
+{% block title %}{{ project.name }} — Контент-план{% endblock %}
+{% block extra_dash_style %}
+.cp-stats{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:18px}
+.cp-stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.cp-stat .n{font-size:20px;font-weight:700}
+.cp-stat .l{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-top:2px}
+.cp-bar{height:3px;border-radius:2px;margin-top:8px}
+.cp-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.cp-filters a{padding:5px 12px;border-radius:14px;font-size:12px;background:var(--s2);color:var(--muted);text-decoration:none;border:1px solid var(--border)}
+.cp-filters a.active{background:var(--accent);color:#000;border-color:var(--accent)}
+.cp-filters .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-right:4px}
+.cp-list{display:flex;flex-direction:column;gap:8px}
+.cp-row{display:grid;grid-template-columns:120px 110px 1fr 110px 90px 110px;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;align-items:center}
+.cp-row:hover{border-color:var(--accent)}
+.cp-row a.topic{color:var(--text);text-decoration:none;font-weight:500}
+.cp-row a.topic:hover{color:var(--accent)}
+.cp-pill{display:inline-block;padding:2px 9px;border-radius:11px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.cp-date{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cp-fmt{font-size:11px;color:var(--muted)}
+.cp-platform{font-size:12px;font-weight:600}
+.add-form{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:18px}
+.add-form .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:780px){.cp-row{grid-template-columns:1fr;gap:6px}.add-form .row{grid-template-columns:1fr}.cp-stats{grid-template-columns:repeat(3,1fr)}}
+{% endblock %}
+{% block dash_content %}
+<div class="section">
+  <div class="cp-stats">
+    {% for st in statuses %}
+    <div class="cp-stat">
+      <div class="n">{{ stats[st] }}</div>
+      <div class="l">{{ status_labels[st] }}</div>
+      <div class="cp-bar" style="background:{{ status_colors[st] }}"></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="cp-filters">
+    <span class="lbl">Статус:</span>
+    <a href="/p/{{ project.slug }}/content" class="{% if not status_filter %}active{% endif %}">Все</a>
+    {% for st in statuses %}
+    <a href="/p/{{ project.slug }}/content?status={{ st }}{% if platform_filter %}&platform={{ platform_filter }}{% endif %}" class="{% if status_filter==st %}active{% endif %}">{{ status_labels[st] }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="cp-filters">
+    <span class="lbl">Площадка:</span>
+    <a href="/p/{{ project.slug }}/content{% if status_filter %}?status={{ status_filter }}{% endif %}" class="{% if not platform_filter %}active{% endif %}">Все</a>
+    {% for p in platforms %}
+    <a href="/p/{{ project.slug }}/content?platform={{ p }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="{% if platform_filter==p %}active{% endif %}">{{ platform_labels[p] }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="cp-list">
+    {% for it in items %}
+    <div class="cp-row">
+      <div class="cp-date">{{ it.scheduled_date or '—' }}</div>
+      <div class="cp-platform">{{ platform_labels[it.platform] }}</div>
+      <div>
+        <a href="/p/{{ project.slug }}/content/{{ it.id }}" class="topic">{{ it.topic }}</a>
+        <div class="cp-fmt">{{ formats[it.format_type] }}{% if it.hook %} · {{ it.hook[:60] }}{% if it.hook|length > 60 %}…{% endif %}{% endif %}</div>
+      </div>
+      <div>
+        <span class="cp-pill" style="background:{{ status_colors[it.status] }}20;color:{{ status_colors[it.status] }}">{{ status_labels[it.status] }}</span>
+      </div>
+      <div class="cp-fmt">№{{ it.id }}</div>
+      <div style="text-align:right">
+        <a href="/p/{{ project.slug }}/content/{{ it.id }}" class="cp-fmt" style="color:var(--accent);text-decoration:none">Открыть →</a>
+      </div>
+    </div>
+    {% else %}
+    <div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;border:1px dashed var(--border);border-radius:8px">
+      Контент-план пуст. Добавь первую карточку ниже или дождись автогенерации.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<details class="add-form" style="margin-top:24px">
+  <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--accent)">+ Добавить карточку вручную</summary>
+  <form method="post" action="/p/{{ project.slug }}/content/add" style="margin-top:14px">
+    <div class="row">
+      <div class="form-group">
+        <label>Площадка</label>
+        <select name="platform" required>
+          {% for p in platforms %}<option value="{{ p }}">{{ platform_labels[p] }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Формат</label>
+        <select name="format_type" required>
+          {% for k,v in formats.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Дата публикации</label>
+        <input type="date" name="scheduled_date">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Тема</label>
+      <input name="topic" required placeholder="Например: Налоговая 2026 — что меняется">
+    </div>
+    <div class="form-group">
+      <label>Хук (первые 3 секунды)</label>
+      <input name="hook" placeholder="Если ты владелец доставки — этот пост спасёт твою прибыль">
+    </div>
+    <div class="form-group">
+      <label>Структура / сценарий</label>
+      <textarea name="structure" rows="6" placeholder="Тезисы поста или раскадровка видео"></textarea>
+    </div>
+    <div class="row">
+      <div class="form-group">
+        <label>CTA</label>
+        <input name="cta" placeholder="Подпишись на TG / Запиши на консультацию">
+      </div>
+      <div class="form-group" style="grid-column:span 2">
+        <label>Промпт визуала (ChatGPT Image)</label>
+        <input name="visual_prompt" placeholder="Подробное описание обложки/чек-листа">
+      </div>
+    </div>
+    <button type="submit" class="btn">Создать черновик</button>
+  </form>
+</details>
+{% endblock %}

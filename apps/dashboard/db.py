@@ -116,6 +116,23 @@ def init_project_db(db_path: Path) -> None:
             tags       TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now','localtime'))
         );
+        CREATE TABLE IF NOT EXISTS content_plan (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            platform        TEXT NOT NULL,
+            format_type     TEXT NOT NULL,
+            topic           TEXT NOT NULL,
+            hook            TEXT DEFAULT '',
+            structure       TEXT DEFAULT '',
+            cta             TEXT DEFAULT '',
+            visual_prompt   TEXT DEFAULT '',
+            scheduled_date  TEXT,
+            status          TEXT DEFAULT 'pending',
+            comment         TEXT DEFAULT '',
+            assets          TEXT DEFAULT '[]',
+            week_index      INTEGER DEFAULT 0,
+            created_at      TEXT DEFAULT (datetime('now','localtime')),
+            updated_at      TEXT DEFAULT (datetime('now','localtime'))
+        );
     """)
     conn.commit()
     conn.close()
@@ -377,6 +394,159 @@ def delete_idea(db: Path, idea_id: int) -> None:
     conn.close()
 
 
+# ── Content plan ──────────────────────────────────────────────────────────────
+
+CONTENT_PLATFORMS = ["telegram", "instagram", "youtube", "cross"]
+CONTENT_PLATFORM_LABELS = {
+    "telegram": "Telegram",
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "cross": "Кросс-постинг",
+}
+
+CONTENT_FORMATS = {
+    "post":      "Пост",
+    "carousel":  "Карусель",
+    "reels":     "Reels/Shorts",
+    "longvideo": "Длинное видео",
+    "story":     "Сторис",
+}
+
+CONTENT_STATUSES = [
+    "draft", "pending", "approved", "production",
+    "ready", "published", "rejected",
+]
+CONTENT_STATUS_LABELS = {
+    "draft":      "Черновик",
+    "pending":    "На утверждение",
+    "approved":   "Утверждён",
+    "production": "В производстве",
+    "ready":      "Готов",
+    "published":  "Опубликован",
+    "rejected":   "Отклонён",
+}
+CONTENT_STATUS_COLORS = {
+    "draft":      "#64748b",
+    "pending":    "#f59e0b",
+    "approved":   "#22d3ee",
+    "production": "#a78bfa",
+    "ready":      "#34d399",
+    "published":  "#10b981",
+    "rejected":   "#f87171",
+}
+
+
+def add_content_item(db: Path, platform: str, format_type: str, topic: str,
+                     hook: str = "", structure: str = "", cta: str = "",
+                     visual_prompt: str = "", scheduled_date: str | None = None,
+                     status: str = "pending", assets: list | None = None,
+                     week_index: int = 0) -> int:
+    conn = _conn(db)
+    cur = conn.execute(
+        "INSERT INTO content_plan "
+        "(platform,format_type,topic,hook,structure,cta,visual_prompt,"
+        " scheduled_date,status,assets,week_index) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        (platform, format_type, topic, hook, structure, cta, visual_prompt,
+         scheduled_date, status, json.dumps(assets or [], ensure_ascii=False),
+         week_index),
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
+    return new_id
+
+
+def get_content_items(db: Path, status: str | None = None,
+                      platform: str | None = None,
+                      week_index: int | None = None,
+                      limit: int = 200) -> list[dict]:
+    conn = _conn(db)
+    q = "SELECT * FROM content_plan WHERE 1=1"
+    params: list = []
+    if status:
+        q += " AND status=?"; params.append(status)
+    if platform:
+        q += " AND platform=?"; params.append(platform)
+    if week_index is not None:
+        q += " AND week_index=?"; params.append(week_index)
+    q += " ORDER BY scheduled_date IS NULL, scheduled_date, id LIMIT ?"
+    params.append(limit)
+    rows = conn.execute(q, params).fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["assets"] = json.loads(d["assets"] or "[]")
+        except Exception:
+            d["assets"] = []
+        result.append(d)
+    return result
+
+
+def get_content_item(db: Path, item_id: int) -> dict | None:
+    conn = _conn(db)
+    row = conn.execute("SELECT * FROM content_plan WHERE id=?", (item_id,)).fetchone()
+    conn.close()
+    if not row:
+        return None
+    d = dict(row)
+    try:
+        d["assets"] = json.loads(d["assets"] or "[]")
+    except Exception:
+        d["assets"] = []
+    return d
+
+
+def update_content_status(db: Path, item_id: int, status: str,
+                          comment: str = "") -> None:
+    conn = _conn(db)
+    conn.execute(
+        "UPDATE content_plan SET status=?, comment=?, "
+        "updated_at=datetime('now','localtime') WHERE id=?",
+        (status, comment, item_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def update_content_item(db: Path, item_id: int, **fields) -> None:
+    if not fields:
+        return
+    if "assets" in fields and not isinstance(fields["assets"], str):
+        fields["assets"] = json.dumps(fields["assets"], ensure_ascii=False)
+    cols = ", ".join(f"{k}=?" for k in fields.keys())
+    params = list(fields.values()) + [item_id]
+    conn = _conn(db)
+    conn.execute(
+        f"UPDATE content_plan SET {cols}, updated_at=datetime('now','localtime') WHERE id=?",
+        params,
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_content_item(db: Path, item_id: int) -> None:
+    conn = _conn(db)
+    conn.execute("DELETE FROM content_plan WHERE id=?", (item_id,))
+    conn.commit()
+    conn.close()
+
+
+def content_stats(db: Path) -> dict:
+    conn = _conn(db)
+    rows = conn.execute(
+        "SELECT status, COUNT(*) c FROM content_plan GROUP BY status"
+    ).fetchall()
+    conn.close()
+    s = {st: 0 for st in CONTENT_STATUSES}
+    for r in rows:
+        s[r["status"]] = r["c"]
+    s["total"] = sum(s.values())
+    return s
+
+
 # ── Overview stats ────────────────────────────────────────────────────────────
 
 def get_stats(db: Path) -> dict:
@@ -392,6 +562,10 @@ def get_stats(db: Path) -> dict:
     s["ideas_new"]      = one("SELECT COUNT(*) FROM ideas WHERE status='new'")
     s["ideas_total"]    = one("SELECT COUNT(*) FROM ideas")
     s["reports_total"]  = one("SELECT COUNT(*) FROM reports")
+    s["content_pending"]   = one("SELECT COUNT(*) FROM content_plan WHERE status='pending'")
+    s["content_approved"]  = one("SELECT COUNT(*) FROM content_plan WHERE status='approved'")
+    s["content_published"] = one("SELECT COUNT(*) FROM content_plan WHERE status='published'")
+    s["content_total"]     = one("SELECT COUNT(*) FROM content_plan")
 
     r = conn.execute("SELECT week_start FROM metrics ORDER BY week_start DESC LIMIT 1").fetchone()
     s["latest_week"] = r["week_start"] if r else None

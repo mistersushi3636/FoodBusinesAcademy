@@ -27,6 +27,7 @@
     <span class="dash-project">{{ project.name }}</span>
     <nav class="dash-nav">
       <a href="/p/{{ project.slug }}/" class="nav-link {% if tab=='overview' %}active{% endif %}">Обзор</a>
+      <a href="/p/{{ project.slug }}/content" class="nav-link {% if tab=='content' %}active{% endif %}">Контент-план</a>
       <a href="/p/{{ project.slug }}/calendar" class="nav-link {% if tab=='calendar' %}active{% endif %}">Календарь</a>
       <a href="/p/{{ project.slug }}/reports" class="nav-link {% if tab=='reports' %}active{% endif %}">Отчёты</a>
       <a href="/p/{{ project.slug }}/ideas" class="nav-link {% if tab=='ideas' %}active{% endif %}">Идеи</a>

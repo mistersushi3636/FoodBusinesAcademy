@@ -1,0 +1,166 @@
+{% extends "_dash_base.html" %}
+{% block title %}{{ item.topic }} — Контент-план{% endblock %}
+{% block extra_dash_style %}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px}
+.crumb a{color:var(--accent);text-decoration:none}
+.cc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px}
+.cc-title{font-size:22px;font-weight:700;line-height:1.25}
+.cc-meta{font-size:12px;color:var(--muted);margin-top:6px}
+.cc-pill{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-right:6px}
+.cc-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
+.cc-card h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:10px}
+.cc-card p,.cc-card pre{font-size:14px;line-height:1.55;white-space:pre-wrap;font-family:inherit;background:transparent;border:0;padding:0;margin:0}
+.cc-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+.cc-actions{display:flex;flex-direction:column;gap:10px}
+.cc-btn{padding:10px 14px;border-radius:8px;border:0;cursor:pointer;font-size:13px;font-weight:600;text-align:center;text-decoration:none;display:block}
+.cc-btn-approve{background:#22d3ee;color:#000}
+.cc-btn-rework{background:#f59e0b;color:#000}
+.cc-btn-prod{background:#a78bfa;color:#000}
+.cc-btn-ready{background:#34d399;color:#000}
+.cc-btn-pub{background:#10b981;color:#fff}
+.cc-btn-del{background:#7a2020;color:#fca5a5}
+.cc-btn-edit{background:var(--s2);color:var(--text);border:1px solid var(--border)}
+.cc-comment{background:#1d1208;border:1px solid #5a3a08;color:#fcd34d;padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:14px}
+.cc-prompt{background:#0f1d2a;border:1px solid #1d3a52;border-radius:8px;padding:14px;font-family:'SF Mono',Menlo,monospace;font-size:12px;line-height:1.5;color:#7dd3fc;white-space:pre-wrap}
+.cc-edit{display:none;margin-top:14px}
+.cc-edit.open{display:block}
+@media(max-width:780px){.cc-grid{grid-template-columns:1fr}}
+{% endblock %}
+{% block dash_content %}
+<div class="crumb"><a href="/p/{{ project.slug }}/content">← Контент-план</a></div>
+
+<div class="cc-head">
+  <div>
+    <div class="cc-title">{{ item.topic }}</div>
+    <div class="cc-meta">
+      <span class="cc-pill" style="background:{{ status_colors[item.status] }}20;color:{{ status_colors[item.status] }}">{{ status_labels[item.status] }}</span>
+      <span>{{ platform_labels[item.platform] }} · {{ formats[item.format_type] }}</span>
+      {% if item.scheduled_date %}<span>· 📅 {{ item.scheduled_date }}</span>{% endif %}
+      <span>· №{{ item.id }}</span>
+    </div>
+  </div>
+</div>
+
+{% if item.comment %}
+<div class="cc-comment">
+  💬 <b>Правка от Антона:</b><br>
+  {{ item.comment }}
+</div>
+{% endif %}
+
+<div class="cc-grid">
+  <div>
+    {% if item.hook %}
+    <div class="cc-card">
+      <h3>🎯 Хук (первые 3 сек)</h3>
+      <p>{{ item.hook }}</p>
+    </div>
+    {% endif %}
+
+    <div class="cc-card">
+      <h3>📋 Структура / сценарий</h3>
+      <pre>{{ item.structure or '—' }}</pre>
+    </div>
+
+    {% if item.cta %}
+    <div class="cc-card">
+      <h3>👉 Call-to-action</h3>
+      <p>{{ item.cta }}</p>
+    </div>
+    {% endif %}
+
+    {% if item.visual_prompt %}
+    <div class="cc-card">
+      <h3>🎨 Промпт для ChatGPT Image</h3>
+      <div class="cc-prompt">{{ item.visual_prompt }}</div>
+      <button onclick="navigator.clipboard.writeText(this.previousElementSibling.innerText);this.textContent='✓ Скопировано'" class="cc-btn cc-btn-edit" style="margin-top:8px;width:auto;display:inline-block;padding:6px 12px">📋 Копировать промпт</button>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="cc-actions">
+      {% if item.status in ['draft','pending','rejected'] %}
+      <form method="post" action="/p/{{ project.slug }}/content/{{ item.id }}/approve" style="display:flex;flex-direction:column;gap:8px">
+        <input type="date" name="scheduled_date" value="{{ item.scheduled_date or '' }}" required style="padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--s2);color:var(--text)">
+        <button class="cc-btn cc-btn-approve" type="submit">✅ Утвердить и в календарь</button>
+      </form>
+
+      <button onclick="document.getElementById('rework').classList.toggle('open')" class="cc-btn cc-btn-rework">✏️ Доработать</button>
+      <form id="rework" class="cc-edit" method="post" action="/p/{{ project.slug }}/content/{{ item.id }}/rework">
+        <textarea name="comment" required rows="3" placeholder="Что переделать?" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--s2);color:var(--text);font-family:inherit"></textarea>
+        <button class="cc-btn cc-btn-rework" type="submit" style="margin-top:6px">Отправить на доработку</button>
+      </form>
+      {% endif %}
+
+      {% if item.status == 'approved' %}
+      <form method="post" action="/p/{{ project.slug }}/content/{{ item.id }}/status">
+        <input type="hidden" name="status" value="production">
+        <button class="cc-btn cc-btn-prod">🎬 В производство</button>
+      </form>
+      {% endif %}
+
+      {% if item.status == 'production' %}
+      <form method="post" action="/p/{{ project.slug }}/content/{{ item.id }}/status">
+        <input type="hidden" name="status" value="ready">
+        <button class="cc-btn cc-btn-ready">📦 Готов к публикации</button>
+      </form>
+      {% endif %}
+
+      {% if item.status == 'ready' %}
+      <form method="post" action="/p/{{ project.slug }}/content/{{ item.id }}/status">
+        <input type="hidden" name="status" value="published">
+        <button class="cc-btn cc-btn-pub">🚀 Опубликован</button>
+      </form>
+      {% endif %}
+
+      <button onclick="document.getElementById('edit').classList.toggle('open')" class="cc-btn cc-btn-edit">✎ Редактировать</button>
+
+      <form method="post" action="/p/{{ project.slug }}/content/{{ item.id }}/delete" onsubmit="return confirm('Удалить карточку?')">
+        <button class="cc-btn cc-btn-del" type="submit" style="width:100%">🗑 Удалить</button>
+      </form>
+    </div>
+
+    <div class="cc-card" style="margin-top:14px">
+      <h3>📅 Метаданные</h3>
+      <div style="font-size:12px;color:var(--muted);line-height:1.7">
+        Создано: {{ item.created_at }}<br>
+        Обновлено: {{ item.updated_at }}<br>
+        {% if item.week_index %}Неделя плана: {{ item.week_index }}{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<form id="edit" class="cc-edit" method="post" action="/p/{{ project.slug }}/content/{{ item.id }}/edit" style="margin-top:18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px">
+  <h3 style="margin-bottom:14px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">Редактировать карточку</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+    <div class="form-group">
+      <label>Площадка</label>
+      <select name="platform">
+        {% for p, lbl in platform_labels.items() %}
+        <option value="{{ p }}" {% if item.platform==p %}selected{% endif %}>{{ lbl }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Формат</label>
+      <select name="format_type">
+        {% for k,v in formats.items() %}
+        <option value="{{ k }}" {% if item.format_type==k %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Дата</label>
+      <input type="date" name="scheduled_date" value="{{ item.scheduled_date or '' }}">
+    </div>
+  </div>
+  <div class="form-group"><label>Тема</label><input name="topic" value="{{ item.topic }}" required></div>
+  <div class="form-group"><label>Хук</label><input name="hook" value="{{ item.hook }}"></div>
+  <div class="form-group"><label>Структура</label><textarea name="structure" rows="8">{{ item.structure }}</textarea></div>
+  <div class="form-group"><label>CTA</label><input name="cta" value="{{ item.cta }}"></div>
+  <div class="form-group"><label>Промпт визуала</label><textarea name="visual_prompt" rows="4">{{ item.visual_prompt }}</textarea></div>
+  <button class="cc-btn cc-btn-approve" type="submit" style="display:inline-block;padding:8px 18px">Сохранить</button>
+</form>
+{% endblock %}

@@ -468,6 +468,177 @@ async def idea_delete(request: Request, slug: str, idea_id: int):
     return RedirectResponse(f"/p/{slug}/ideas", status_code=302)
 
 
+# ── Content plan ──────────────────────────────────────────────────────────────
+
+@app.get("/p/{slug}/content", response_class=HTMLResponse)
+async def content_list(request: Request, slug: str,
+                        status: str = "", platform: str = ""):
+    result = _authed(request, slug)
+    if isinstance(result, RedirectResponse):
+        return result
+    project = result
+    pdb = _db.project_db_path(project)
+    _db.init_project_db(pdb)
+
+    items = _db.get_content_items(
+        pdb,
+        status=status or None,
+        platform=platform or None,
+    )
+    stats = _db.content_stats(pdb)
+    return _render(request, "content.html", {
+        "project": project,
+        "tab": "content",
+        "items": items,
+        "stats": stats,
+        "status_filter": status,
+        "platform_filter": platform,
+        "platforms": _db.CONTENT_PLATFORMS,
+        "platform_labels": _db.CONTENT_PLATFORM_LABELS,
+        "formats": _db.CONTENT_FORMATS,
+        "statuses": _db.CONTENT_STATUSES,
+        "status_labels": _db.CONTENT_STATUS_LABELS,
+        "status_colors": _db.CONTENT_STATUS_COLORS,
+    })
+
+
+@app.get("/p/{slug}/content/{item_id}", response_class=HTMLResponse)
+async def content_detail(request: Request, slug: str, item_id: int):
+    result = _authed(request, slug)
+    if isinstance(result, RedirectResponse):
+        return result
+    project = result
+    pdb = _db.project_db_path(project)
+    item = _db.get_content_item(pdb, item_id)
+    if not item:
+        return RedirectResponse(f"/p/{slug}/content", status_code=302)
+    return _render(request, "content_card.html", {
+        "project": project,
+        "tab": "content",
+        "item": item,
+        "platform_labels": _db.CONTENT_PLATFORM_LABELS,
+        "formats": _db.CONTENT_FORMATS,
+        "statuses": _db.CONTENT_STATUSES,
+        "status_labels": _db.CONTENT_STATUS_LABELS,
+        "status_colors": _db.CONTENT_STATUS_COLORS,
+    })
+
+
+@app.post("/p/{slug}/content/add")
+async def content_add(
+    request: Request, slug: str,
+    platform: str = Form(...),
+    format_type: str = Form(...),
+    topic: str = Form(...),
+    hook: str = Form(""),
+    structure: str = Form(""),
+    cta: str = Form(""),
+    visual_prompt: str = Form(""),
+    scheduled_date: str = Form(""),
+):
+    result = _authed(request, slug)
+    if isinstance(result, RedirectResponse):
+        return result
+    pdb = _db.project_db_path(result)
+    _db.add_content_item(
+        pdb, platform, format_type, topic,
+        hook=hook, structure=structure, cta=cta,
+        visual_prompt=visual_prompt,
+        scheduled_date=scheduled_date or None,
+        status="pending",
+    )
+    return RedirectResponse(f"/p/{slug}/content", status_code=302)
+
+
+@app.post("/p/{slug}/content/{item_id}/approve")
+async def content_approve(request: Request, slug: str, item_id: int,
+                           scheduled_date: str = Form("")):
+    result = _authed(request, slug)
+    if isinstance(result, RedirectResponse):
+        return result
+    pdb = _db.project_db_path(result)
+    item = _db.get_content_item(pdb, item_id)
+    if not item:
+        return RedirectResponse(f"/p/{slug}/content", status_code=302)
+
+    sched = scheduled_date or item.get("scheduled_date") or ""
+    fields: dict = {"status": "approved"}
+    if sched:
+        fields["scheduled_date"] = sched
+    _db.update_content_item(pdb, item_id, **fields)
+
+    if sched:
+        platform_lbl = _db.CONTENT_PLATFORM_LABELS.get(item["platform"], item["platform"])
+        format_lbl = _db.CONTENT_FORMATS.get(item["format_type"], item["format_type"])
+        _db.add_event(
+            pdb, sched,
+            f"📣 {platform_lbl} · {format_lbl}: {item['topic']}",
+            f"Контент-план #{item_id}",
+            "planned", "content",
+        )
+
+    return RedirectResponse(f"/p/{slug}/content/{item_id}", status_code=302)
+
+
+@app.post("/p/{slug}/content/{item_id}/rework")
+async def content_rework(request: Request, slug: str, item_id: int,
+                          comment: str = Form(...)):
+    result = _authed(request, slug)
+    if isinstance(result, RedirectResponse):
+        return result
+    pdb = _db.project_db_path(result)
+    _db.update_content_status(pdb, item_id, "draft", comment=comment)
+    return RedirectResponse(f"/p/{slug}/content/{item_id}", status_code=302)
+
+
+@app.post("/p/{slug}/content/{item_id}/status")
+async def content_set_status(request: Request, slug: str, item_id: int,
+                              status: str = Form(...)):
+    result = _authed(request, slug)
+    if isinstance(result, RedirectResponse):
+        return result
+    if status not in _db.CONTENT_STATUSES:
+        return RedirectResponse(f"/p/{slug}/content/{item_id}", status_code=302)
+    pdb = _db.project_db_path(result)
+    _db.update_content_status(pdb, item_id, status)
+    return RedirectResponse(f"/p/{slug}/content/{item_id}", status_code=302)
+
+
+@app.post("/p/{slug}/content/{item_id}/edit")
+async def content_edit(
+    request: Request, slug: str, item_id: int,
+    platform: str = Form(...),
+    format_type: str = Form(...),
+    topic: str = Form(...),
+    hook: str = Form(""),
+    structure: str = Form(""),
+    cta: str = Form(""),
+    visual_prompt: str = Form(""),
+    scheduled_date: str = Form(""),
+):
+    result = _authed(request, slug)
+    if isinstance(result, RedirectResponse):
+        return result
+    pdb = _db.project_db_path(result)
+    _db.update_content_item(
+        pdb, item_id,
+        platform=platform, format_type=format_type, topic=topic,
+        hook=hook, structure=structure, cta=cta,
+        visual_prompt=visual_prompt,
+        scheduled_date=scheduled_date or None,
+    )
+    return RedirectResponse(f"/p/{slug}/content/{item_id}", status_code=302)
+
+
+@app.post("/p/{slug}/content/{item_id}/delete")
+async def content_delete(request: Request, slug: str, item_id: int):
+    result = _authed(request, slug)
+    if isinstance(result, RedirectResponse):
+        return result
+    _db.delete_content_item(_db.project_db_path(result), item_id)
+    return RedirectResponse(f"/p/{slug}/content", status_code=302)
+
+
 # ── Health ────────────────────────────────────────────────────────────────────
 
 @app.get("/health")
