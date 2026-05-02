@@ -20,7 +20,7 @@ from aiogram.types import (
 from loguru import logger
 
 from config import settings
-from brand import BRAND_GUIDE, PRESETS, ASPECT_RATIOS
+from brand import BRAND_GUIDE, PRESETS, ASPECT_RATIOS, LEAD_MAGNET_TYPES, LEAD_MAGNET_PROMPT
 
 router = Router(name="prompts")
 
@@ -49,8 +49,15 @@ def _pending_cards() -> list[dict]:
 MENU_KB = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="📋 Промпты на утверждение", callback_data="pending")],
     [InlineKeyboardButton(text="🎨 Пресеты визуала", callback_data="presets")],
+    [InlineKeyboardButton(text="🎁 Лид-магнит (промпт для ChatGPT)", callback_data="magnets")],
     [InlineKeyboardButton(text="🆘 Как пользоваться", callback_data="help")],
 ])
+
+MAGNETS_KB = InlineKeyboardMarkup(inline_keyboard=(
+    [[InlineKeyboardButton(text=f"{label} — {desc}", callback_data=f"magnet:{key}")]
+     for key, (label, desc) in LEAD_MAGNET_TYPES.items()]
+    + [[InlineKeyboardButton(text="← Меню", callback_data="menu")]]
+))
 
 
 @router.message(CommandStart())
@@ -170,6 +177,41 @@ async def cb_menu(cb: CallbackQuery) -> None:
         "🎨 <b>FBA Prompt Bot</b>\n\nВыбери действие:",
         reply_markup=MENU_KB,
     )
+
+
+# ── /magnet ──
+
+@router.message(Command("magnet"))
+@router.callback_query(F.data == "magnets")
+async def show_magnets(event) -> None:
+    uid = event.from_user.id
+    if not _is_anton(uid):
+        return
+    answer_fn = event.message.answer if isinstance(event, CallbackQuery) else event.answer
+    await answer_fn(
+        "🎁 <b>Лид-магниты</b>\n\nВыбери тип — пришлю промпт для ChatGPT (текст). "
+        "Замени <code>&lt;ВСТАВЬ ТЕМУ&gt;</code> на свою — и копируй в чат GPT.\n\n"
+        "После генерации текста — используй /preset «Чек-лист (PNG)» или «Мини-гайд (PNG)» для верстки визуала.",
+        reply_markup=MAGNETS_KB,
+    )
+
+
+@router.callback_query(F.data.startswith("magnet:"))
+async def cb_magnet(cb: CallbackQuery) -> None:
+    if not _is_anton(cb.from_user.id):
+        return
+    key = cb.data.split(":", 1)[1]
+    type_data = LEAD_MAGNET_TYPES.get(key)
+    if not type_data:
+        await cb.answer("Тип не найден")
+        return
+    label, _desc = type_data
+    body = LEAD_MAGNET_PROMPT.format(magnet_type=label, theme="<ВСТАВЬ ТЕМУ>")
+    await cb.message.answer(
+        f"🎁 <b>Промпт лид-магнита: {label}</b>\n\nКопируй и вставь в ChatGPT (предварительно замени тему):\n\n"
+        f"<code>{body}</code>"[:4000]
+    )
+    await cb.answer()
 
 
 # ── свободный текст → Claude генерит промпт ──
