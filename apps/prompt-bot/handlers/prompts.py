@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import html
 import sqlite3
 from typing import Iterable
 
@@ -116,8 +117,8 @@ async def show_pending(event) -> None:
         head = (
             f"<b>#{c['id']} · {plt} · {fmt}</b>\n"
             f"📅 {c['scheduled_date'] or '—'} · статус: {c['status']}\n"
-            f"🎯 {c['topic']}\n\n"
-            f"<code>{c['visual_prompt']}</code>"
+            f"🎯 {html.escape(c['topic'])}\n\n"
+            f"<code>{html.escape(c['visual_prompt'])}</code>"
         )
         await answer_fn(head[:4000])
 
@@ -163,7 +164,7 @@ async def cb_preset(cb: CallbackQuery) -> None:
     body = (
         f"🎨 <b>{label}</b>\n"
         f"<i>{ratio}</i>\n\n"
-        f"<code>{template.strip()}</code>"
+        f"<code>{html.escape(template.strip())}</code>"
     )
     await cb.message.answer(body[:4000])
     await cb.answer()
@@ -209,7 +210,7 @@ async def cb_magnet(cb: CallbackQuery) -> None:
     body = LEAD_MAGNET_PROMPT.format(magnet_type=label, theme="<ВСТАВЬ ТЕМУ>")
     await cb.message.answer(
         f"🎁 <b>Промпт лид-магнита: {label}</b>\n\nКопируй и вставь в ChatGPT (предварительно замени тему):\n\n"
-        f"<code>{body}</code>"[:4000]
+        f"<code>{html.escape(body)}</code>"[:4000]
     )
     await cb.answer()
 
@@ -258,7 +259,7 @@ async def gen_prompt(message: Message) -> None:
         )
         await msg.edit_text(
             f"🎨 <b>Промпт готов</b> · скопируй и вставь в ChatGPT Image:\n\n"
-            f"<code>{out.strip()}</code>"[:4000]
+            f"<code>{html.escape(out.strip())}</code>"[:4000]
         )
     except Exception as e:
         logger.exception("prompt gen error")
