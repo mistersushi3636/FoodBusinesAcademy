@@ -30,11 +30,22 @@ SUBSCRIBE_KEYBOARD = InlineKeyboardMarkup(inline_keyboard=[[
 ]])
 
 
+class SubCheckError(Exception):
+    """Бот не имеет доступа к списку участников канала."""
+
+
 async def _is_subscribed(bot: Bot, user_id: int) -> bool:
     try:
         member = await bot.get_chat_member(settings.channel_id, user_id)
         return member.status not in ("left", "kicked", "banned")
     except Exception as e:
+        msg = str(e).lower()
+        if "member list is inaccessible" in msg or "chat not found" in msg:
+            logger.error(
+                f"Bot не админ канала {settings.channel_id}. "
+                f"Добавь @FBA_leadbot админом канала."
+            )
+            raise SubCheckError() from e
         logger.warning(f"Subscription check failed for {user_id}: {e}")
         return False
 
@@ -66,12 +77,26 @@ async def _send_lead_magnet(message_or_callback, bot: Bot) -> None:
     logger.info(f"PDF sent to user {chat_id}")
 
 
+SETUP_ERR = (
+    "⚙️ Бот не подключён к каналу как администратор.\n\n"
+    "Владельцу: добавь <b>@FBA_leadbot</b> в админы канала "
+    "<b>@Food_Busines_Academy</b> с правом «Управление подписчиками» "
+    "и попробуй снова."
+)
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message, bot: Bot) -> None:
     user_id = message.from_user.id
     logger.info(f"/start from {user_id} (@{message.from_user.username})")
 
-    if await _is_subscribed(bot, user_id):
+    try:
+        is_sub = await _is_subscribed(bot, user_id)
+    except SubCheckError:
+        await message.answer(SETUP_ERR)
+        return
+
+    if is_sub:
         await message.answer(
             "👋 Привет! Ты подписан на <b>Food Business Academy</b>.\n"
             "Отправляю чек-лист прямо сейчас 👇"
@@ -91,7 +116,14 @@ async def cmd_start(message: Message, bot: Bot) -> None:
 async def check_subscription(callback: CallbackQuery, bot: Bot) -> None:
     user_id = callback.from_user.id
 
-    if await _is_subscribed(bot, user_id):
+    try:
+        is_sub = await _is_subscribed(bot, user_id)
+    except SubCheckError:
+        await callback.message.answer(SETUP_ERR)
+        await callback.answer()
+        return
+
+    if is_sub:
         await callback.message.edit_text(
             "✅ Подписка подтверждена! Отправляю чек-лист 👇"
         )
