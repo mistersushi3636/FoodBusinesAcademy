@@ -69,7 +69,7 @@
         <tr class="section-row"><td colspan="{{ reports|length + 1 }}">ОПЕРАЦИОННЫЕ РАСХОДЫ (ежедневные)</td></tr>
         <tr><td>Покупки магазин (продукты)</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.daily_shop).replace(",", " ") }} ₽</td>{% endfor %}</tr>
         <tr><td>Хоз. средства, тара, упаковка</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.daily_household).replace(",", " ") }} ₽</td>{% endfor %}</tr>
-        <tr><td>Еда персонала</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.daily_staff_meals).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>Еда персонала</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.staff_meals).replace(",", " ") }} ₽</td>{% endfor %}</tr>
 
         {% if is_owner %}
         <tr class="section-row"><td colspan="{{ reports|length + 1 }}">ФОТ</td></tr>

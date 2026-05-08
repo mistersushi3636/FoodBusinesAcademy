@@ -307,7 +307,9 @@ def avg_check_with_delta(branch_id: int | None) -> dict:
     """
     Берёт два последних дня с введённой выручкой, считает avg-check + дельту.
     """
-    end = date.today().isoformat()
+    # Окно: последние 60 дней до сегодня + 30 дней вперёд (на случай ввода
+    # за будущие даты — например, плановый ввод за выходной).
+    end = (date.today() + timedelta(days=30)).isoformat()
     start = (date.today() - timedelta(days=60)).isoformat()
     rows = db.get_daily_revenue_range(start, end, branch_id)
 
