@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Ввод за день — MR.SUSHI{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Ввод данных за день</h1>
+    <form method="GET" action="/input/daily" class="filters">
+        <input type="date" name="d" value="{{ d }}" onchange="this.form.submit()">
+    </form>
+</div>
+
+{% if request.query_params.get('saved') %}
+<div class="alert ok">✅ Сохранено</div>
+{% endif %}
+
+<div class="branch-input-grid">
+{% for b in branches %}
+<form method="POST" action="/input/daily" class="input-form">
+    <input type="hidden" name="d" value="{{ d }}">
+    <input type="hidden" name="branch_id" value="{{ b.id }}">
+    <h2>{{ b.name }}</h2>
+
+    <div class="form-section">
+        <h3>Выручка</h3>
+        <div class="row-2">
+            <label>
+                <span>Доставка ₽</span>
+                <input type="number" step="0.01" name="revenue_delivery" value="{{ existing[b.id].revenue.get('revenue_delivery', '') or '' }}">
+            </label>
+            <label>
+                <span>Самовывоз ₽</span>
+                <input type="number" step="0.01" name="revenue_pickup" value="{{ existing[b.id].revenue.get('revenue_pickup', '') or '' }}">
+            </label>
+        </div>
+        <div class="row-2">
+            <label>
+                <span>Заказов доставки</span>
+                <input type="number" name="orders_delivery" value="{{ existing[b.id].revenue.get('orders_delivery', '') or '' }}">
+            </label>
+            <label>
+                <span>Заказов самовывоза</span>
+                <input type="number" name="orders_pickup" value="{{ existing[b.id].revenue.get('orders_pickup', '') or '' }}">
+            </label>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3>Ежедневные расходы</h3>
+        <label>
+            <span>Покупки в магазине (продукты) ₽</span>
+            <input type="number" step="0.01" name="shop_purchase" value="{{ existing[b.id].expense.get('shop_purchase', '') or '' }}">
+        </label>
+        <label>
+            <span>Хоз. средства, тара, упаковка ₽</span>
+            <input type="number" step="0.01" name="household" value="{{ existing[b.id].expense.get('household', '') or '' }}">
+        </label>
+        <label>
+            <span>Заметка</span>
+            <input type="text" name="note" value="{{ existing[b.id].expense.get('note', '') or '' }}">
+        </label>
+    </div>
+
+    <button type="submit" class="btn-primary">Сохранить — {{ b.name }}</button>
+</form>
+{% endfor %}
+</div>
+
+<div class="section">
+    <h2>Доп. расход за день</h2>
+    <p class="hint">Любой расход с привязкой к категории и филиалу. Можно добавлять по необходимости (без шаблона). Все добавления попадают в архив <a href="/history?kind=extra">истории</a>.</p>
+    <form method="POST" action="/input/daily/extra" class="input-form input-form-inline">
+        <input type="hidden" name="d" value="{{ d }}">
+        <select name="branch_id" required>
+            <option value="">Общий (без филиала)</option>
+            {% for b in branches %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
+        </select>
+        <select name="category" required>
+            {% for k, label in COST_CATEGORIES.items() %}<option value="{{ k }}">{{ label }}</option>{% endfor %}
+        </select>
+        <input type="text" name="subcategory" placeholder="Подкатегория (необяз.)">
+        <input type="number" step="0.01" name="amount" placeholder="Сумма ₽" required>
+        <input type="text" name="note" placeholder="Заметка">
+        <button type="submit" class="btn-primary">Добавить расход</button>
+    </form>
+</div>
+
+<div class="section">
+    <h2>Доп. расходы за {{ d }}</h2>
+    <table class="data-table">
+        <thead><tr><th>Время</th><th>Филиал</th><th>Категория</th><th>Подкатегория</th><th>Сумма</th><th>Заметка</th><th>Кто</th><th></th></tr></thead>
+        <tbody>
+            {% set all_extras = common_extras + (extras[1] | list) + (extras[2] | list) %}
+            {% for x in all_extras %}
+            <tr>
+                <td><span class="muted">{{ x.created_at[11:16] if x.created_at and x.created_at|length >= 16 else '—' }}</span></td>
+                <td>{{ x.branch_name or 'Общий' }}</td>
+                <td>{{ COST_CATEGORIES.get(x.category, x.category) }}</td>
+                <td>{{ x.subcategory or '—' }}</td>
+                <td><b>{{ "{:,.0f}".format(x.amount).replace(",", " ") }} ₽</b></td>
+                <td>{{ x.note or '' }}</td>
+                <td><span class="muted">{{ x.created_by_name or '—' }}</span></td>
+                <td>
+                    <form method="POST" action="/input/daily/extra/{{ x.id }}/delete" style="display:inline">
+                        <input type="hidden" name="d" value="{{ d }}">
+                        <button class="btn-danger-sm" title="Удалить">×</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" class="empty">За этот день доп. расходов не вносилось</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

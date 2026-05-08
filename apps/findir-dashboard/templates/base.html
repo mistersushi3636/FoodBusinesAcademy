@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PNP MR.SUSHI — Финдир{% endblock %}</title>
+    <link rel="stylesheet" href="/static/theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+{% if user %}
+<header class="topbar">
+    <div class="brand">
+        <span class="logo">🍣</span>
+        <span class="brand-text">MR.SUSHI <em>Финдир</em></span>
+    </div>
+    <nav class="nav">
+        <a href="/" class="{% if request.url.path == '/' %}active{% endif %}">Дашборд</a>
+        <a href="/pnl" class="{% if request.url.path == '/pnl' %}active{% endif %}">PNL</a>
+        <a href="/input/daily" class="{% if request.url.path.startswith('/input/daily') %}active{% endif %}">Ввод за день</a>
+        {% if is_owner %}
+        <a href="/input/monthly" class="{% if request.url.path.startswith('/input/monthly') %}active{% endif %}">Месячные расходы</a>
+        <a href="/employees" class="{% if request.url.path.startswith('/employees') %}active{% endif %}">ФОТ</a>
+        <a href="/plan-fact" class="{% if request.url.path.startswith('/plan-fact') %}active{% endif %}">План/Факт</a>
+        {% endif %}
+        <a href="/history" class="{% if request.url.path.startswith('/history') %}active{% endif %}">История</a>
+    </nav>
+    <div class="user-block">
+        <span class="user-role role-{{ user.role }}">{{ "Владелец" if is_owner else "Управляющий" }}</span>
+        <span class="user-name">{{ user.username }}</span>
+        <a href="/logout" class="logout">Выход</a>
+    </div>
+</header>
+{% endif %}
+<main class="main">
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>

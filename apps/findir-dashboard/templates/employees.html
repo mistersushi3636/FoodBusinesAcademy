@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}ФОТ — MR.SUSHI{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Сотрудники и ФОТ</h1>
+    <form method="GET" action="/employees" class="filters">
+        <input type="month" name="period" value="{{ period }}" onchange="this.form.submit()">
+    </form>
+</div>
+
+<div class="section">
+    <h2>Добавить сотрудника</h2>
+    <form method="POST" action="/employees/add" class="input-form input-form-inline">
+        <input type="text" name="full_name" placeholder="Фамилия Имя" required>
+        <select name="category" required>
+            {% for k, label in EMPLOYEE_CATEGORIES.items() %}<option value="{{ k }}">{{ label }}</option>{% endfor %}
+        </select>
+        <select name="branch_id">
+            <option value="">Без филиала / общий</option>
+            {% for b in branches %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn-primary">Добавить</button>
+    </form>
+</div>
+
+<div class="section">
+    <h2>Внести выплату</h2>
+    <form method="POST" action="/employees/pay" class="input-form input-form-inline">
+        <input type="hidden" name="period" value="{{ period }}">
+        <select name="employee_id" required>
+            {% for e in employees %}
+            <option value="{{ e.id }}">{{ e.full_name }} — {{ EMPLOYEE_CATEGORIES.get(e.category, e.category) }} {% if e.branch_name %}({{ e.branch_name }}){% endif %}</option>
+            {% endfor %}
+        </select>
+        <input type="number" step="0.01" name="amount" placeholder="Сумма ₽" required>
+        <input type="date" name="paid_at" value="{{ today }}" required>
+        <input type="text" name="note" placeholder="Заметка">
+        <button type="submit" class="btn-primary">Внести</button>
+    </form>
+</div>
+
+<div class="section">
+    <h2>Список сотрудников ({{ period }})</h2>
+    <table class="data-table">
+        <thead><tr><th>ФИО</th><th>Категория</th><th>Филиал</th><th>Выплачено за период</th><th></th></tr></thead>
+        <tbody>
+            {% for e in employees %}
+            <tr>
+                <td><b>{{ e.full_name }}</b></td>
+                <td>{{ EMPLOYEE_CATEGORIES.get(e.category, e.category) }}</td>
+                <td>{{ e.branch_name or '—' }}</td>
+                <td><b>{{ "{:,.0f}".format(pay_by_emp.get(e.id, 0)).replace(",", " ") }} ₽</b></td>
+                <td>
+                    <form method="POST" action="/employees/{{ e.id }}/deactivate" style="display:inline">
+                        <button class="btn-danger-sm" title="Уволить">×</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="empty">Нет сотрудников. Добавьте первого выше.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

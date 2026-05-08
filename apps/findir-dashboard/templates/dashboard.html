@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Дашборд — MR.SUSHI{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Финансовый дашборд</h1>
+    <form method="GET" action="/" class="filters">
+        <input type="month" name="period" value="{{ period }}" onchange="this.form.submit()">
+        <select name="branch_id" onchange="this.form.submit()">
+            <option value="all" {% if branch_id is none %}selected{% endif %}>Все филиалы</option>
+            {% for b in branches %}
+                <option value="{{ b.id }}" {% if branch_id == b.id %}selected{% endif %}>{{ b.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<div class="section">
+    <h2>Средний чек · последний день vs предыдущий</h2>
+    <div class="avg-check-grid">
+        {% for ac in avg_checks %}
+        <div class="avg-card trend-{{ ac.trend }}">
+            <div class="ac-branch">{{ ac.branch_name }}</div>
+            {% if ac.today %}
+                <div class="ac-value">{{ "{:,.0f}".format(ac.today.avg).replace(",", " ") }} ₽</div>
+                <div class="ac-meta">
+                    <span class="ac-date">{{ ac.today.date }}</span>
+                    <span class="ac-orders">{{ ac.today.orders }} зак.</span>
+                </div>
+                {% if ac.prev %}
+                    <div class="ac-delta">
+                        <span class="delta-arrow">{% if ac.trend == 'up' %}▲{% elif ac.trend == 'down' %}▼{% else %}—{% endif %}</span>
+                        <span class="delta-pct">{{ "%+.1f"|format(ac.delta_pct) }} %</span>
+                        <span class="delta-vs">vs {{ "{:,.0f}".format(ac.prev.avg).replace(",", " ") }} ₽ ({{ ac.prev.date }})</span>
+                    </div>
+                {% else %}
+                    <div class="ac-delta delta-none">Нет данных за предыдущий день</div>
+                {% endif %}
+            {% else %}
+                <div class="ac-value muted">—</div>
+                <div class="ac-meta"><span>Нет данных</span></div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card kpi-revenue">
+        <div class="kpi-label">Выручка месяц</div>
+        <div class="kpi-value">{{ "{:,.0f}".format(report.revenue.total).replace(",", " ") }} ₽</div>
+        <div class="kpi-sub">
+            <span>Доставка: {{ "{:,.0f}".format(report.revenue.delivery).replace(",", " ") }} ₽ ({{ "%.1f"|format(report.revenue.delivery_share_pct) }}%)</span>
+            <span>Самовывоз: {{ "{:,.0f}".format(report.revenue.pickup).replace(",", " ") }} ₽ ({{ "%.1f"|format(report.revenue.pickup_share_pct) }}%)</span>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Заказы месяц</div>
+        <div class="kpi-value">{{ report.revenue.total_orders }}</div>
+        <div class="kpi-sub">
+            <span>Доставка: {{ report.revenue.orders_delivery }}</span>
+            <span>Самовывоз: {{ report.revenue.orders_pickup }}</span>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Ср. чек месяц</div>
+        <div class="kpi-value">{{ "{:,.0f}".format(report.revenue.avg_check_total).replace(",", " ") }} ₽</div>
+        <div class="kpi-sub">
+            <span>Доставка: {{ "{:,.0f}".format(report.revenue.avg_check_delivery).replace(",", " ") }} ₽</span>
+            <span>Самовывоз: {{ "{:,.0f}".format(report.revenue.avg_check_pickup).replace(",", " ") }} ₽</span>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Food cost</div>
+        <div class="kpi-value">{{ "%.1f"|format(report.food_cost_pct) }} %</div>
+        <div class="kpi-sub"><span>Норма: 28-32%</span></div>
+    </div>
+
+    {% if is_owner %}
+    <div class="kpi-card">
+        <div class="kpi-label">ФОТ</div>
+        <div class="kpi-value">{{ "{:,.0f}".format(report.costs.fot_total).replace(",", " ") }} ₽</div>
+        <div class="kpi-sub"><span>{{ "%.1f"|format(report.fot_pct) }} % выручки</span></div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Маркетинг</div>
+        <div class="kpi-value">{{ "{:,.0f}".format(report.costs.marketing_total).replace(",", " ") }} ₽</div>
+        <div class="kpi-sub"><span>{{ "%.1f"|format(report.marketing_pct) }} % выручки</span></div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Опер. расходы</div>
+        <div class="kpi-value">{{ "{:,.0f}".format(report.costs.operating_total).replace(",", " ") }} ₽</div>
+        <div class="kpi-sub"><span>Всего расходов: {{ "{:,.0f}".format(report.costs.total).replace(",", " ") }} ₽</span></div>
+    </div>
+
+    <div class="kpi-card kpi-ebitda">
+        <div class="kpi-label">EBITDA</div>
+        <div class="kpi-value">{{ "{:,.0f}".format(report.ebitda).replace(",", " ") }} ₽</div>
+        <div class="kpi-sub"><span>{{ "%.1f"|format(report.ebitda_pct) }} %</span></div>
+    </div>
+
+    <div class="kpi-card kpi-net {% if report.net_profit < 0 %}negative{% endif %}">
+        <div class="kpi-label">Чистая прибыль</div>
+        <div class="kpi-value">{{ "{:,.0f}".format(report.net_profit).replace(",", " ") }} ₽</div>
+        <div class="kpi-sub"><span>{{ "%.1f"|format(report.net_profit_pct) }} %</span></div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="section">
+    <h2>Динамика общей выручки (доставка + самовывоз)</h2>
+    <div class="chart-wrap"><canvas id="combinedChart"></canvas></div>
+</div>
+
+<div class="section">
+    <h2>Сравнение филиалов (за месяц)</h2>
+    <div class="branch-cards">
+        {% for r in reports %}
+        <div class="branch-card">
+            <div class="branch-name">{{ r.branch_name }}</div>
+            <div class="branch-stat"><span>Выручка</span><b>{{ "{:,.0f}".format(r.revenue.total).replace(",", " ") }} ₽</b></div>
+            <div class="branch-stat"><span>Заказы</span><b>{{ r.revenue.total_orders }}</b></div>
+            <div class="branch-stat"><span>Ср. чек</span><b>{{ "{:,.0f}".format(r.revenue.avg_check_total).replace(",", " ") }} ₽</b></div>
+            <div class="branch-stat"><span>Food cost</span><b>{{ "%.1f"|format(r.food_cost_pct) }} %</b></div>
+            {% if is_owner %}
+            <div class="branch-stat"><span>EBITDA</span><b>{{ "{:,.0f}".format(r.ebitda).replace(",", " ") }} ₽</b></div>
+            <div class="branch-stat"><span>ЧП</span><b>{{ "{:,.0f}".format(r.net_profit).replace(",", " ") }} ₽ ({{ "%.1f"|format(r.net_profit_pct) }} %)</b></div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if is_owner %}
+<div class="section">
+    <h2>Структура расходов</h2>
+    <div class="chart-wrap chart-small"><canvas id="costPie"></canvas></div>
+</div>
+{% endif %}
+
+<script>
+const labels = {{ combined.labels | tojson }};
+const dataAll = {{ combined.datasets['all'].data | tojson }};
+{% for b in branches %}
+const data{{ b.id }} = {{ combined.datasets[b.id].data | tojson }};
+{% endfor %}
+
+const ctx = document.getElementById('combinedChart').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels,
+        datasets: [
+            {label: 'Общая (2 филиала)', data: dataAll, borderColor: '#d4af37',
+             backgroundColor: 'rgba(212,175,55,0.18)', tension: 0.3, fill: false,
+             borderWidth: 3, pointRadius: 4},
+            {% for b in branches %}
+            {label: '{{ b.name }}', data: data{{ b.id }},
+             borderColor: '{% if loop.index == 1 %}#c8102e{% else %}#7c9eff{% endif %}',
+             backgroundColor: '{% if loop.index == 1 %}rgba(200,16,46,0.10){% else %}rgba(124,158,255,0.10){% endif %}',
+             tension: 0.3, fill: false, borderWidth: 2, pointRadius: 3},
+            {% endfor %}
+        ]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {legend: {labels: {color: '#e8e6e3'}}},
+        scales: {
+            x: {ticks: {color: '#999'}, grid: {color: '#26211c'}},
+            y: {ticks: {color: '#999', callback: v => v.toLocaleString('ru-RU') + ' ₽'},
+                grid: {color: '#26211c'}}
+        }
+    }
+});
+
+{% if is_owner %}
+const pieCtx = document.getElementById('costPie').getContext('2d');
+new Chart(pieCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Продукты', 'Опер. расходы (день)', 'ФОТ', 'Маркетинг', 'Аренда+Ком.', 'Налоги', 'Прочее'],
+        datasets: [{
+            data: [
+                {{ report.costs.food_supply }},
+                {{ report.costs.daily_shop + report.costs.daily_household + report.costs.staff_meals }},
+                {{ report.costs.fot_total }},
+                {{ report.costs.marketing_total }},
+                {{ report.costs.communal_rent }},
+                {{ report.costs.taxes }},
+                {{ report.costs.other + report.costs.equipment + report.costs.internet_phone + report.costs.bank_commission + report.costs.bank_credit + report.costs.site }}
+            ],
+            backgroundColor: ['#c8102e','#8a1326','#d4af37','#a37c1c','#5b4636','#3a1f1f','#666']
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {legend: {labels: {color: '#e8e6e3'}, position: 'right'}}
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

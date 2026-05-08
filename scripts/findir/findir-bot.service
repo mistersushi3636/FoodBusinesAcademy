@@ -1,0 +1,17 @@
+[Unit]
+Description=MR.SUSHI Findir Telegram Bot (aiogram)
+After=network.target findir-dashboard.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/fba/vault/apps/findir-bot
+EnvironmentFile=/opt/fba/.env
+ExecStart=/opt/fba/venvs/findir-bot/bin/python bot.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

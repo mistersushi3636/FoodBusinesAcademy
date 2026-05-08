@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}История — MR.SUSHI{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>История ввода данных</h1>
+    <form method="GET" action="/history" class="filters">
+        <select name="kind" onchange="this.form.submit()">
+            <option value="" {% if not kind %}selected{% endif %}>Все операции</option>
+            <option value="revenue" {% if kind == 'revenue' %}selected{% endif %}>Выручка</option>
+            <option value="expense" {% if kind == 'expense' %}selected{% endif %}>Ежедн. расходы (фикс.)</option>
+            <option value="extra" {% if kind == 'extra' %}selected{% endif %}>Доп. расходы за день</option>
+            <option value="monthly" {% if kind == 'monthly' %}selected{% endif %}>Месячные расходы</option>
+            <option value="salary" {% if kind == 'salary' %}selected{% endif %}>ФОТ</option>
+        </select>
+        <select name="branch_id" onchange="this.form.submit()">
+            <option value="all" {% if branch_id is none %}selected{% endif %}>Все филиалы</option>
+            {% for b in branches %}
+                <option value="{{ b.id }}" {% if branch_id == b.id %}selected{% endif %}>{{ b.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="limit" onchange="this.form.submit()">
+            <option value="100" {% if limit == 100 %}selected{% endif %}>100</option>
+            <option value="200" {% if limit == 200 %}selected{% endif %}>200</option>
+            <option value="500" {% if limit == 500 %}selected{% endif %}>500</option>
+            <option value="1000" {% if limit == 1000 %}selected{% endif %}>1000</option>
+        </select>
+    </form>
+</div>
+
+<div class="section">
+    <p class="hint">Журнал всех действий ввода: кто, когда, что добавил, к какой статье. Свежие сверху.</p>
+    <table class="data-table history-table">
+        <thead>
+            <tr>
+                <th>Создано</th>
+                <th>Тип</th>
+                <th>Дата/период</th>
+                <th>Филиал</th>
+                <th>Категория</th>
+                <th>Подкатегория</th>
+                <th>Сумма</th>
+                <th>Заметка</th>
+                <th>Кто</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in events %}
+            <tr class="ev-{{ e.kind }}">
+                <td><span class="muted">{{ e.created_at }}</span></td>
+                <td><span class="kind-pill kind-{{ e.kind }}">{{ e.detail }}</span></td>
+                <td>{{ e.event_date }}</td>
+                <td>{{ e.branch_name or '—' }}</td>
+                <td>{% if e.category %}{{ COST_CATEGORIES.get(e.category, EMPLOYEE_CATEGORIES.get(e.category, e.category)) }}{% else %}—{% endif %}</td>
+                <td>{{ e.subcategory or '—' }}</td>
+                <td><b>{{ "{:,.0f}".format(e.amount).replace(",", " ") }} ₽</b></td>
+                <td>{{ e.note or '' }}</td>
+                <td><span class="muted">{{ e.created_by_name or '—' }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="9" class="empty">Нет записей по выбранному фильтру</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

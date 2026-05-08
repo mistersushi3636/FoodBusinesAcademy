@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}PNL таблица — MR.SUSHI{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>PNL таблица</h1>
+    <form method="GET" action="/pnl" class="filters">
+        <input type="month" name="period" value="{{ period }}" onchange="this.form.submit()">
+    </form>
+</div>
+
+<div class="pnl-wrap">
+<table class="pnl-table">
+    <thead>
+        <tr>
+            <th class="th-row">Показатель</th>
+            {% for r in reports %}<th>{{ r.branch_name }}</th>{% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        <tr class="section-row"><td colspan="{{ reports|length + 1 }}">ВЫРУЧКА</td></tr>
+        <tr>
+            <td>Доставка</td>
+            {% for r in reports %}
+            <td><b>{{ "{:,.0f}".format(r.revenue.delivery).replace(",", " ") }} ₽</b>
+                <span class="pct">{{ "%.1f"|format(r.revenue.delivery_share_pct) }} %</span></td>
+            {% endfor %}
+        </tr>
+        <tr>
+            <td>Самовывоз</td>
+            {% for r in reports %}
+            <td><b>{{ "{:,.0f}".format(r.revenue.pickup).replace(",", " ") }} ₽</b>
+                <span class="pct">{{ "%.1f"|format(r.revenue.pickup_share_pct) }} %</span></td>
+            {% endfor %}
+        </tr>
+        <tr class="total-row">
+            <td>Общая выручка</td>
+            {% for r in reports %}<td><b>{{ "{:,.0f}".format(r.revenue.total).replace(",", " ") }} ₽</b></td>{% endfor %}
+        </tr>
+        <tr>
+            <td>Заказов (доставка)</td>
+            {% for r in reports %}<td>{{ r.revenue.orders_delivery }} <span class="pct">{{ "%.1f"|format(r.revenue.orders_delivery / r.revenue.total_orders * 100 if r.revenue.total_orders else 0) }} %</span></td>{% endfor %}
+        </tr>
+        <tr>
+            <td>Заказов (самовывоз)</td>
+            {% for r in reports %}<td>{{ r.revenue.orders_pickup }} <span class="pct">{{ "%.1f"|format(r.revenue.orders_pickup / r.revenue.total_orders * 100 if r.revenue.total_orders else 0) }} %</span></td>{% endfor %}
+        </tr>
+        <tr>
+            <td>Средний чек (доставка)</td>
+            {% for r in reports %}<td>{{ "{:,.0f}".format(r.revenue.avg_check_delivery).replace(",", " ") }} ₽</td>{% endfor %}
+        </tr>
+        <tr>
+            <td>Средний чек (самовывоз)</td>
+            {% for r in reports %}<td>{{ "{:,.0f}".format(r.revenue.avg_check_pickup).replace(",", " ") }} ₽</td>{% endfor %}
+        </tr>
+        <tr>
+            <td>Средний чек (всего)</td>
+            {% for r in reports %}<td>{{ "{:,.0f}".format(r.revenue.avg_check_total).replace(",", " ") }} ₽</td>{% endfor %}
+        </tr>
+
+        <tr class="section-row"><td colspan="{{ reports|length + 1 }}">СЕБЕСТОИМОСТЬ</td></tr>
+        <tr>
+            <td>Затраты на продукты (поставщики)</td>
+            {% for r in reports %}
+            <td><b>{{ "{:,.0f}".format(r.costs.food_supply).replace(",", " ") }} ₽</b>
+                <span class="pct">{{ "%.1f"|format(r.food_cost_pct) }} %</span></td>
+            {% endfor %}
+        </tr>
+
+        <tr class="section-row"><td colspan="{{ reports|length + 1 }}">ОПЕРАЦИОННЫЕ РАСХОДЫ (ежедневные)</td></tr>
+        <tr><td>Покупки магазин (продукты)</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.daily_shop).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>Хоз. средства, тара, упаковка</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.daily_household).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>Еда персонала</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.daily_staff_meals).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+
+        {% if is_owner %}
+        <tr class="section-row"><td colspan="{{ reports|length + 1 }}">ФОТ</td></tr>
+        <tr class="total-row">
+            <td>ФОТ всего</td>
+            {% for r in reports %}<td><b>{{ "{:,.0f}".format(r.costs.fot_total).replace(",", " ") }} ₽</b></td>{% endfor %}
+        </tr>
+        {% for cat_key, cat_label in EMPLOYEE_CATEGORIES.items() %}
+        <tr>
+            <td class="indent">{{ cat_label }}</td>
+            {% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.fot_by_category.get(cat_key, 0)).replace(",", " ") }} ₽</td>{% endfor %}
+        </tr>
+        {% endfor %}
+        {% endif %}
+
+        <tr class="section-row"><td colspan="{{ reports|length + 1 }}">ОПЕРАЦИОННЫЕ (месячные)</td></tr>
+        <tr><td>Интернет + телефония</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.internet_phone).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>Оборудование, инвентарь, ремонт</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.equipment).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>Банк. комиссии (терминал + тариф)</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.bank_commission).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>Коммуналка + аренда + охрана/ПБ</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.communal_rent).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>Сайт (goulash.tech)</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.site).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+
+        <tr class="section-row"><td colspan="{{ reports|length + 1 }}">МАРКЕТИНГ</td></tr>
+        <tr><td>Блогеры / партнёрства</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.marketing_blogger).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>SMM / таргет</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.marketing_smm).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>Яндекс Еда (комиссия + тариф + возвраты)</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.ya_eda).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>Купер</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.kuper).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>Яндекс Директ</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.ya_direct).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>REVVY</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.revvy).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr class="total-row">
+            <td>Маркетинг всего</td>
+            {% for r in reports %}<td><b>{{ "{:,.0f}".format(r.costs.marketing_total).replace(",", " ") }} ₽</b>
+                <span class="pct">{{ "%.1f"|format(r.marketing_pct) }} %</span></td>{% endfor %}
+        </tr>
+
+        {% if is_owner %}
+        <tr class="section-row"><td colspan="{{ reports|length + 1 }}">БАНК / НАЛОГИ</td></tr>
+        <tr><td>Банк (кредиты/займы)</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.bank_credit).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        <tr><td>Налоги (АУСН 8%)</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.taxes).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+        {% endif %}
+
+        <tr class="section-row"><td colspan="{{ reports|length + 1 }}">ИТОГИ</td></tr>
+        <tr class="total-row">
+            <td>Расходы всего</td>
+            {% for r in reports %}<td><b>{{ "{:,.0f}".format(r.costs.total).replace(",", " ") }} ₽</b></td>{% endfor %}
+        </tr>
+        <tr><td>Опер. расходы (всего)</td>{% for r in reports %}<td>{{ "{:,.0f}".format(r.costs.operating_total).replace(",", " ") }} ₽</td>{% endfor %}</tr>
+
+        {% if is_owner %}
+        <tr class="total-row ebitda-row">
+            <td>EBITDA</td>
+            {% for r in reports %}<td><b>{{ "{:,.0f}".format(r.ebitda).replace(",", " ") }} ₽</b>
+                <span class="pct">{{ "%.1f"|format(r.ebitda_pct) }} %</span></td>{% endfor %}
+        </tr>
+        <tr class="total-row net-row {% if report and report.net_profit < 0 %}negative{% endif %}">
+            <td>ЧИСТАЯ ПРИБЫЛЬ</td>
+            {% for r in reports %}
+            <td class="{% if r.net_profit < 0 %}negative{% endif %}">
+                <b>{{ "{:,.0f}".format(r.net_profit).replace(",", " ") }} ₽</b>
+                <span class="pct">{{ "%.1f"|format(r.net_profit_pct) }} %</span>
+            </td>
+            {% endfor %}
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+</div>
+{% endblock %}
